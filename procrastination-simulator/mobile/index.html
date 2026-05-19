@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>专注实验室</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a0a1a;
+  --bg2:#0f0f25;
+  --surface:rgba(255,255,255,0.05);
+  --surface2:rgba(255,255,255,0.08);
+  --surface3:rgba(255,255,255,0.03);
+  --text:#e8e8f0;
+  --text-dim:rgba(255,255,255,0.4);
+  --text-muted:rgba(255,255,255,0.25);
+  --primary:#a78bfa;
+  --primary-dim:rgba(167,139,250,0.2);
+  --green:#34d399;
+  --gold:#fbbf24;
+  --purple:#a78bfa;
+  --blue:#60a5fa;
+  --red:#f87171;
+  --orange:#fb923c;
+  --tab-height:56px;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:15px;color:var(--text);background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+#app{display:flex;flex-direction:column;height:100%;background:var(--bg);position:relative}
+
+/* Ambient glow */
+#app::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-50%);width:80vw;height:80vw;border-radius:50%;background:radial-gradient(circle,rgba(167,139,250,0.06),transparent 70%);pointer-events:none;z-index:0}
+#app::after{content:'';position:fixed;bottom:-20vh;right:-20vw;width:60vw;height:60vw;border-radius:50%;background:radial-gradient(circle,rgba(52,211,153,0.04),transparent 70%);pointer-events:none;z-index:0}
+
+/* Tab container */
+.tab-container{display:flex;flex:1;overflow:hidden;position:relative;z-index:1;will-change:transform}
+.tab-container.no-transition{transition:none !important}
+.tab-container.sliding{transition:transform 0.3s cubic-bezier(0.4,0,0.2,1)}
+.tab-panel{width:100%;flex-shrink:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0 16px calc(var(--safe-bottom) + 8px);position:relative}
+.tab-panel::-webkit-scrollbar{display:none}
+
+/* Bottom tab bar */
+#tabBar{display:flex;height:calc(var(--tab-height) + var(--safe-bottom));padding-bottom:var(--safe-bottom);background:rgba(10,10,26,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.06);position:relative;z-index:10;flex-shrink:0}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;color:var(--text-dim);font-size:10px;padding:4px 0;cursor:pointer;transition:color 0.2s;position:relative}
+.tab-btn .tab-icon{font-size:22px;line-height:1;transition:transform 0.2s}
+.tab-btn .tab-label{font-weight:500;letter-spacing:0.3px}
+.tab-btn.active{color:var(--primary)}
+.tab-btn.active .tab-icon{transform:scale(1.05)}
+.tab-btn::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:0;height:2px;border-radius:0 0 2px 2px;background:var(--primary);transition:width 0.2s}
+.tab-btn.active::before{width:24px}
+
+/* Shared components */
+.brand{padding:20px 0 12px;text-align:center;position:relative}
+.brand-icon{width:48px;height:48px;margin:0 auto 8px;border-radius:14px;background:linear-gradient(135deg,rgba(167,139,250,0.25),rgba(52,211,153,0.15));display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 0 20px rgba(167,139,250,0.15),0 0 0 1px rgba(167,139,250,0.1)}
+.brand h1{font-size:20px;font-weight:700;letter-spacing:0.5px;background:linear-gradient(135deg,#e8e8f0 40%,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.brand .sub{font-size:12px;color:var(--text-dim);margin-top:2px;-webkit-text-fill-color:var(--text-dim)}
+.brand-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(167,139,250,0.2),transparent);margin:0 0 16px}
+
+/* Streak ring */
+.streak-section{display:flex;justify-content:center;margin-bottom:16px}
+.streak-ring{position:relative;width:76px;height:76px}
+.streak-ring svg{transform:rotate(-90deg)}
+.streak-ring .ring-bg{fill:none;stroke:rgba(255,255,255,0.06);stroke-width:4}
+.streak-ring .ring-fg{fill:none;stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset 0.6s,stroke 0.3s}
+.streak-ring .ring-center{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.streak-ring .num{font-size:22px;font-weight:700;line-height:1;color:var(--green)}
+.streak-ring .num.glow-green{color:var(--green)}
+.streak-ring .num.glow-gold{color:var(--gold)}
+.streak-ring .num.glow-purple{color:var(--purple)}
+.streak-ring .ring-label{font-size:9px;color:var(--text-dim);margin-top:1px}
+.streak-empty{text-align:center;padding:18px 0 12px;color:var(--text-dim);font-size:13px;line-height:1.5}
+
+/* Check-in */
+.section-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:4px}
+.section-label .dim{color:var(--text-dim);font-weight:400;font-size:12px}
+.energy-grid,.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.type-grid{grid-template-columns:repeat(2,1fr)}
+.opt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.08);background:var(--surface3);cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);user-select:none;position:relative;min-height:52px;justify-content:center}
+.opt .opt-icon{font-size:20px;line-height:1}
+.opt .opt-label{font-size:12px;color:var(--text-dim);transition:color 0.2s}
+.opt .opt-check{position:absolute;top:4px;right:5px;font-size:10px;opacity:0;transition:opacity 0.2s;color:var(--primary)}
+.opt.selected{border-color:var(--primary);background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(167,139,250,0.05));box-shadow:0 4px 12px rgba(167,139,250,0.1)}
+.opt.selected .opt-label{color:var(--primary);font-weight:600}
+.opt.selected .opt-check{opacity:1}
+.opt.high-energy .opt-icon{font-size:22px}
+.opt.type-study .opt-icon{color:var(--blue)}
+.opt.type-work .opt-icon{color:var(--gold)}
+.opt.type-create .opt-icon{color:var(--purple)}
+.opt.type-life .opt-icon{color:var(--green)}
+.opt.selected.type-study{border-color:var(--blue);background:linear-gradient(135deg,rgba(96,165,250,0.15),rgba(96,165,250,0.05))}
+.opt.selected.type-work{border-color:var(--gold);background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(251,191,36,0.05))}
+.opt.selected.type-create{border-color:var(--purple);background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(167,139,250,0.05))}
+.opt.selected.type-life{border-color:var(--green);background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(52,211,153,0.05))}
+.opt:active{transform:scale(0.96)}
+
+/* Recommend card */
+.recommend-card{background:var(--surface2);border-radius:14px;padding:14px;margin-bottom:14px;border-left:3px solid var(--green);display:none;animation:fadeIn 0.3s}
+.recommend-card.show{display:block}
+.recommend-card .rec-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.recommend-card .rec-desc{font-size:12px;color:var(--text-dim);margin-bottom:8px;line-height:1.5}
+.recommend-card .rec-meta{display:flex;gap:12px;font-size:11px;color:var(--text-muted)}
+
+/* Buttons */
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);text-align:center;position:relative;overflow:hidden}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:linear-gradient(135deg,var(--primary),#8b5cf6);color:#fff;box-shadow:0 4px 16px rgba(167,139,250,0.25)}
+.btn-primary:disabled{opacity:0.35;transform:none;box-shadow:none}
+.btn-green{background:linear-gradient(135deg,var(--green),#10b981);color:#fff;box-shadow:0 4px 16px rgba(52,211,153,0.25)}
+.btn-secondary{background:var(--surface2);color:var(--text)}
+.btn-ghost{background:transparent;color:var(--text-dim);padding:10px}
+.btn-small{padding:10px;font-size:13px;border-radius:10px}
+
+/* Cards */
+.card{background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.04)}
+
+/* Practice */
+.practice-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.practice-header .p-icon{font-size:28px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:12px}
+.practice-header .p-info{flex:1}
+.practice-header .p-name{font-size:16px;font-weight:600}
+.practice-header .p-diff{font-size:12px;color:var(--gold)}
+.practice-header .p-desc{font-size:12px;color:var(--text-dim);margin-top:2px}
+.p-instruction{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.p-step{display:flex;gap:10px;align-items:flex-start}
+.p-step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;color:#fff}
+.p-step-num.s1{background:linear-gradient(135deg,var(--primary),#8b5cf6)}
+.p-step-num.s2{background:linear-gradient(135deg,var(--blue),#3b82f6)}
+.p-step-num.s3{background:linear-gradient(135deg,var(--green),#10b981)}
+.p-step-num.s4{background:linear-gradient(135deg,var(--gold),#f59e0b)}
+.p-step-text{font-size:13px;line-height:1.6;color:var(--text);padding-top:3px}
+.practice-actions{display:flex;flex-direction:column;gap:8px}
+.practice-done{text-align:center;padding:8px 0}
+.practice-done .celebration{font-size:48px;margin-bottom:12px;animation:celebrate 0.5s cubic-bezier(0.68,-0.55,0.265,1.55)}
+.practice-done .msg{font-size:18px;font-weight:700;margin-bottom:4px}
+.practice-done .sub{font-size:13px;color:var(--text-dim);margin-bottom:12px}
+.note-input{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:var(--surface3);color:var(--text);font-size:16px;font-family:inherit;resize:none;height:72px;margin-bottom:12px;outline:none;transition:border-color 0.2s}
+.note-input:focus{border-color:var(--primary)}
+
+/* Explore */
+.scenario-card{display:flex;gap:12px;padding:14px;border-radius:14px;background:var(--surface);border:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:all 0.25s;margin-bottom:10px;position:relative;overflow:hidden}
+.scenario-card:active{transform:scale(0.98);background:var(--surface2)}
+.scenario-card .s-top-bar{position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
+.scenario-card .s-icon{font-size:28px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:12px;flex-shrink:0}
+.scenario-card .s-info{flex:1;min-width:0}
+.scenario-card .s-title{font-size:14px;font-weight:600;margin-bottom:2px}
+.scenario-card .s-desc{font-size:12px;color:var(--text-dim);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.scenario-card .s-tag{font-size:10px;color:var(--text-muted);margin-top:4px}
+.sc-top-bar{height:3px;border-radius:14px 14px 0 0;margin:-16px -16px 12px;position:relative}
+.sc-top-bar.phone{background:linear-gradient(90deg,#fb923c,#f97316)}
+.sc-top-bar.bilibili{background:linear-gradient(90deg,#f472b6,#ec4899)}
+.sc-top-bar.search{background:linear-gradient(90deg,#22d3ee,#06b6d4)}
+.sc-top-bar.dream{background:linear-gradient(90deg,#a78bfa,#8b5cf6)}
+.sc-top-bar.giveup{background:linear-gradient(90deg,#94a3b8,#64748b)}
+
+.scenario-active .sc-title{font-size:17px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.scenario-active .sc-desc{font-size:14px;color:var(--text-dim);line-height:1.6;margin-bottom:16px}
+.choice-card{padding:14px;border-radius:12px;margin-bottom:10px;cursor:pointer;transition:all 0.25s;position:relative}
+.choice-card:active{transform:scale(0.98)}
+.choice-card.default{border:1.5px solid rgba(248,113,113,0.2);background:rgba(248,113,113,0.05)}
+.choice-card.strategy{border:1.5px solid rgba(52,211,153,0.2);background:rgba(52,211,153,0.05)}
+.choice-card .choice-label{font-size:14px;font-weight:600;margin-bottom:4px}
+.choice-card .choice-badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;margin-left:6px;vertical-align:middle}
+.choice-card.default .choice-badge{background:rgba(248,113,113,0.15);color:var(--red)}
+.choice-card.strategy .choice-badge{background:rgba(52,211,153,0.15);color:var(--green)}
+.choice-card .choice-time{font-size:11px;color:var(--text-muted)}
+
+.consequence-box{background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:12px}
+.consequence-box .c-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.consequence-box .c-text{font-size:13px;line-height:1.6;color:var(--text)}
+.observation-box{background:rgba(167,139,250,0.08);border-radius:12px;padding:14px;margin-bottom:12px;border-left:3px solid var(--primary)}
+.observation-box .o-label{font-size:11px;color:var(--primary);font-weight:600;margin-bottom:4px}
+.observation-box .o-text{font-size:13px;line-height:1.6;color:var(--text-dim)}
+
+/* Explore result */
+.sim-summary{text-align:center;padding:16px 0}
+.sim-summary .sim-total{font-size:48px;font-weight:700;color:var(--gold);margin:8px 0}
+.sim-summary .sim-total-label{font-size:13px;color:var(--text-dim);margin-bottom:16px}
+.sim-choices{margin-bottom:16px}
+.sim-choice-item{display:flex;justify-content:space-between;padding:8px 12px;border-radius:8px;margin-bottom:4px;font-size:13px}
+.sim-choice-item.default-true{background:rgba(248,113,113,0.06)}
+.sim-choice-item.default-false{background:rgba(52,211,153,0.06)}
+.sim-choice-item .sc-icon{font-size:14px}
+.sim-choice-item .sc-name{flex:1;margin:0 8px;color:var(--text)}
+.sim-choice-item .sc-time{color:var(--text-dim);font-weight:600}
+.sim-insight{padding:14px;background:rgba(167,139,250,0.08);border-radius:12px;font-size:13px;line-height:1.6;color:var(--text-dim);margin-bottom:16px}
+
+/* Growth */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat-card{padding:14px 8px;border-radius:14px;text-align:center;background:var(--surface);border:1px solid rgba(255,255,255,0.04)}
+.stat-card .stat-icon{font-size:20px;margin-bottom:4px}
+.stat-card .stat-num{font-size:24px;font-weight:700;line-height:1.2}
+.stat-card .stat-num.green{color:var(--green)}
+.stat-card .stat-num.gold{color:var(--gold)}
+.stat-card .stat-num.purple{color:var(--purple)}
+.stat-card .stat-num.blue{color:var(--blue)}
+.stat-card .stat-label{font-size:11px;color:var(--text-dim);margin-top:2px}
+
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px}
+.cal-day{text-align:center;padding:6px 0;border-radius:8px;font-size:12px;color:var(--text-dim);position:relative}
+.cal-day .day-label{font-size:10px;color:var(--text-muted);margin-bottom:2px}
+.cal-day .day-dot{width:6px;height:6px;border-radius:50%;margin:3px auto 0;background:transparent;transition:background 0.2s}
+.cal-day .day-dot.full{background:var(--green);box-shadow:0 0 4px rgba(52,211,153,0.4)}
+.cal-day .day-dot.partial{background:var(--gold);box-shadow:0 0 4px rgba(251,191,36,0.3)}
+.cal-day .day-dot.skip{background:rgba(255,255,255,0.15)}
+.cal-day.today{background:rgba(167,139,250,0.1);font-weight:600}
+.cal-day.today .day-label{color:var(--primary)}
+
+/* Strategy grid in growth */
+.strategy-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:4px}
+.strategy-mini-card{padding:10px;border-radius:10px;background:var(--surface);border:1px solid rgba(255,255,255,0.04);position:relative}
+.strategy-mini-card .sm-icon{font-size:18px;margin-bottom:2px}
+.strategy-mini-card .sm-name{font-size:11px;font-weight:600;margin-bottom:2px}
+.strategy-mini-card .sm-progress{font-size:10px;color:var(--text-muted)}
+.strategy-mini-card .sm-check{position:absolute;top:6px;right:6px;font-size:10px;color:var(--green)}
+
+/* Back button */
+.back-btn{display:inline-flex;align-items:center;gap:4px;padding:8px 0;font-size:13px;color:var(--text-dim);cursor:pointer;border:none;background:transparent;margin-bottom:4px}
+.back-btn:active{opacity:0.6}
+.back-btn .back-icon{font-size:16px}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes celebrate{0%{transform:scale(0) rotate(-10deg)}60%{transform:scale(1.2) rotate(5deg)}100%{transform:scale(1) rotate(0)}}
+.slide-in{animation:fadeIn 0.35s cubic-bezier(0.4,0,0.2,1)}
+
+/* Section header */
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-top:4px}
+.section-header .sh-title{font-size:14px;font-weight:600}
+.section-header .sh-action{font-size:12px;color:var(--primary);cursor:pointer;border:none;background:transparent;padding:4px 8px;border-radius:6px}
+.section-header .sh-action:active{background:var(--primary-dim)}
+
+/* Spacer */
+.spacer{height:8px}
+
+/* Divider */
+.m-divider{height:1px;background:rgba(255,255,255,0.04);margin:4px 0 12px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="tab-container sliding" id="tabContainer">
+    <div class="tab-panel" id="tabHome"></div>
+    <div class="tab-panel" id="tabExplore"></div>
+    <div class="tab-panel" id="tabGrowth"></div>
+  </div>
+  <nav id="tabBar">
+    <button class="tab-btn active" data-tab="0">
+      <span class="tab-icon">📋</span>
+      <span class="tab-label">今日</span>
+    </button>
+    <button class="tab-btn" data-tab="1">
+      <span class="tab-icon">🔍</span>
+      <span class="tab-label">探索</span>
+    </button>
+    <button class="tab-btn" data-tab="2">
+      <span class="tab-icon">📈</span>
+      <span class="tab-label">成长</span>
+    </button>
+  </nav>
+</div>
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const STRATEGIES = [
+  {id:'stimulus-control',icon:'📵',name:'刺激控制',difficulty:1,desc:'通过改变环境来减少干扰——这是行为改变最有效的方法之一。',instruction:'观察你当前的环境，找出 3 个可能干扰你的东西（比如手机、打开的社交媒体标签页、电视声音）。\n针对每个干扰源，想一个具体的消除动作。\n例如：手机 → 放到另一个房间',feedback:'环境设计比意志力更可靠。James Clear 说："不要做意志力的战士，做环境的设计师。"'},
+  {id:'ten-minute',icon:'⏱',name:'10 分钟法则',difficulty:1,desc:'告诉自己"只做 10 分钟"，降低开始的心理门槛。',instruction:'选一件你一直在拖延的事。\n设一个 10 分钟的计时器。\n对自己说："就做 10 分钟，10 分钟后我可以停下。"\n开始。',feedback:'一旦开始，继续下去比停下更容易。行为科学家发现，开始是唯一真正的难关。'},
+  {id:'pomodoro',icon:'🍅',name:'番茄工作法',difficulty:1,desc:'25 分钟专注 + 5 分钟休息，循环训练你的专注力。',instruction:'选一个任务。\n设 25 分钟计时器。\n在这 25 分钟内，完全不切换任务。\n计时器响后，休息 5 分钟（站起来、看窗外、别碰手机）。',feedback:'番茄工作法不是关于耐力，而是关于节奏。节奏感比耐力更容易培养。'},
+  {id:'environment',icon:'🪴',name:'环境设计',difficulty:1,desc:'改变物理环境，让好行为更容易、坏行为更难。',instruction:'找出当前环境中一个让你容易分心的东西。\n做一个物理改变：把它移走、关掉、或藏起来。\n再想一个能让好行为更容易的改变。\n立刻执行。',feedback:'Fogg 的行为模型说：能力 > 动机。让好的选择变得更简单，比激励自己更重要。'},
+  {id:'temptation-bundling',icon:'🎧',name:'诱惑捆绑',difficulty:2,desc:'把"应该做的事"和"想做的事"绑在一起。',instruction:'想一件你今天需要做但不太想做的重要任务。\n再想一件你想做的小享受（比如喝咖啡、听一集播客、听喜欢的歌）。\n设定规则：只有先做 25 分钟任务，才能享受 5 分钟。',feedback:'Katy Milkman 的研究发现，诱惑捆绑可以让执行率提高 30% 以上。关键在于次序。'},
+  {id:'parking-lot',icon:'📝',name:'待查清单',difficulty:2,desc:'把临时冒出来的想法写下来，然后继续手头的事。',instruction:'拿出一张纸或打开一个笔记。\n标题写上"待查清单"。\n接下来当你学习/工作时，任何冒出来的杂念都写进去。\n继续做手头的事——承诺之后会处理这些。',feedback:'大脑不喜欢悬而未决的想法。写下来是告诉大脑"我记住了，你可以放心"，从而释放注意力。'},
+  {id:'implementation-intention',icon:'🎯',name:'执行意图',difficulty:3,desc:'用"如果 X，那么 Y"的格式制定计划，执行率翻倍。',instruction:'想一个最近让你分心的具体情况。\n用这个格式写一句话：\n"如果 [具体情况] 发生，那么我就 [具体行动]。"\n例如："如果我忍不住想刷手机，那么我就把手机翻面放桌上。"\n念出声，重复一遍。',feedback:'Gollwitzer 的元分析表明，执行意图可以让目标实现率提高 2-3 倍。关键在于具体到场景和动作。'},
+  {id:'self-compassion',icon:'💚',name:'自我同情停顿',difficulty:3,desc:'用自我关怀替代自我批评——这是打破拖延循环的关键。',instruction:'回想一次最近的拖延经历。\n注意你对自己说的话——是否在批评自己？\n试着对自己说三句话：\n1. "这是人之常情"（正常化）\n2. "我知道你不是故意的"（理解）\n3. "我们可以重新开始"（重新承诺）',feedback:'Kristin Neff 的研究发现：自我批评会导致更多拖延，自我同情反而让人更容易重新开始。'}
+];
+
+const SCENARIOS = [
+  {id:'phone',sceneIcon:'📱',title:'刚坐下来，手机亮了',desc:'你刚翻开书，屏幕亮起——微信弹出一条消息。你知道大概率不是急事，但那个红点让你心痒。',choices:[
+    {id:'check',label:'看一眼消息',timePassed:20,isDefault:true,consequence:'你拿起手机回了消息，顺手刷了刷朋友圈和短视频。再放下时，20 分钟过去了。',observation:'我们对小红点的敏感度远高于对待办事项的敏感度。这是大脑的默认模式。'},
+    {id:'ignore',label:'先放包里',timePassed:0,isDefault:false,consequence:'你忍住了。心神不宁了 3 分钟，但熬过去后终于进入了状态。',observation:'前额叶皮层战胜了爬行动物脑。每次抵抗都在强化神经通路——就像练肌肉。'}
+  ]},
+  {id:'bilibili',sceneIcon:'🎬',title:'查资料，打开了视频平台',desc:'你需要查一个教程。你告诉自己"只看这一个"，但首页推荐比教程吸引人多了。',choices:[
+    {id:'browse',label:'先看看首页推荐',timePassed:35,isDefault:true,consequence:'算法比你更懂你的注意力。一个接一个，从学习区滑到了生活区。"这是第几个了？"',observation:'推荐系统的设计目标是最大化你的停留时间，而不是你的学习效率。'},
+    {id:'focus',label:'搜索完立刻退出',timePassed:0,isDefault:false,consequence:'你只看完需要的部分就关了页面。虽然有点不甘心，但时间保住了。',observation:'设定明确的搜索目标再打开页面——"我只查这个，查完就走"。'}
+  ]},
+  {id:'search',sceneIcon:'🔍',title:'遇到一个不懂的概念',desc:'学习材料里出现了一个陌生的术语。你决定查一下——然后发现相关链接一个比一个有趣。',choices:[
+    {id:'dig',label:'顺着链接点下去',timePassed:45,isDefault:true,consequence:'你开了 8 个标签页。从 A 查到 B，从 B 查到 C……已经忘了最初要查什么了。',observation:'互联网的链接是欲望的链条——每一环都通向一个"你可能想知道"的东西。'},
+    {id:'note',label:'先记下来，学完再查',timePassed:0,isDefault:false,consequence:'你把这个词记在了笔记里。忍住没点开，继续看原来的内容。延迟满足是一项超能力。',observation:'把疑问存档而不是立即满足——延迟满足能力比智商更能预测学业成就。'}
+  ]},
+  {id:'dream',sceneIcon:'☁️',title:'学不进去了……',desc:'盯着书本，但字已经不进脑子了。你开始发呆，然后思绪飘到了别的地方——',choices:[
+    {id:'drift',label:'放任自己发呆',timePassed:40,isDefault:true,consequence:'你开始幻想如果当初选了另一条路，现在的人生会是什么样。在白日梦里，你已经成功了。现实中，时间在走。',observation:'幻想是最安全也最昂贵的娱乐——不需要门票，但消耗的是时间。'},
+    {id:'pomodoro',label:'设个番茄钟再撑一会',timePassed:0,isDefault:false,consequence:'你对自己说："再学 5 分钟，就 5 分钟。"结果真的进入了状态，不知不觉又学了半小时。',observation:'突破"不想学"的临界点只需要 5 分钟。最难的是决定撑过这 5 分钟的那一刻。'}
+  ]},
+  {id:'giveup',sceneIcon:'🌅',title:'天快黑了',desc:'窗外天色渐暗。你看了看今天的进度——几乎没有推进。一个声音在脑海里响起："明天再说吧。"',choices:[
+    {id:'quit',label:'今天先到这里',timePassed:120,isDefault:true,consequence:'你合上书，感到一阵轻松，随即被愧疚淹没。今天的计划全部作废。"明天一定补回来。"——但明天也会这样想。',observation:'拖延的最后一环不是懒惰，是自我妥协。自我批评只会让这个循环更深。'},
+    {id:'push',label:'再学 25 分钟再结束',timePassed:0,isDefault:false,consequence:'你设了一个番茄钟。25 分钟，至少完成一件事再走。一天下来虽然没完成全部，但至少推进了一点点。',observation:'"完成一件事"比"什么都想做但什么都没做"好一万倍。James Clear 说：每天进步 1%，一年后你会进步 37 倍。'}
+  ]}
+];
+
+// ============================================================
+// STATE & PERSISTENCE
+// ============================================================
+const STORAGE_KEY = 'focusLabData';
+
+function defaultUserData() {
+  return { totalPractices:0, streak:0, lastActiveDate:'', practiceLog:[], strategyProgress:{}, lastSimChoices:null };
+}
+
+let userData = null;
+let currentTab = 0;
+let homeState = 'checkin'; // 'checkin' | 'practice' | 'done'
+let sessionEnergy = null;
+let sessionType = null;
+let sessionPracticeId = null;
+let exploreState = 'list'; // 'list' | 'playing' | 'result'
+let currentScenarioIdx = 0;
+let simState = { currentRound:0, totalTime:0, choiceLog:[] };
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { userData = JSON.parse(raw); return; }
+  } catch(e) {}
+  userData = defaultUserData();
+}
+
+function saveData() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(userData)); } catch(e) {}
+}
+
+function formatDate(d) {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+
+function getTodayStr() { return formatDate(new Date()); }
+function isToday(str) { return str === getTodayStr(); }
+
+// ============================================================
+// TAB NAVIGATION + SWIPE
+// ============================================================
+const tabContainer = document.getElementById('tabContainer');
+const tabPanels = [document.getElementById('tabHome'), document.getElementById('tabExplore'), document.getElementById('tabGrowth')];
+const tabBtns = document.querySelectorAll('.tab-btn');
+let swipeStartX = 0, swipeStartY = 0, swipeDeltaX = 0, isSwiping = false;
+
+function switchTab(index, animate) {
+  if (index === currentTab && animate !== false) return;
+  // Save state when leaving explore/growth
+  if (index !== 1 && exploreState !== 'list') { exploreState = 'list'; }
+  currentTab = index;
+  const pct = -index * 100 / 3;
+  if (animate === false) tabContainer.classList.add('no-transition');
+  tabContainer.style.transform = 'translateX(' + pct + '%)';
+  tabContainer.classList.add('sliding');
+  tabBtns.forEach((b, i) => b.classList.toggle('active', i === index));
+  renderCurrentTab();
+  if (animate === false) {
+    // Force reflow then remove no-transition
+    tabContainer.offsetHeight;
+    tabContainer.classList.remove('no-transition');
+  }
+}
+
+function renderCurrentTab() {
+  if (currentTab === 0) renderHome();
+  else if (currentTab === 1) renderExplore();
+  else if (currentTab === 2) renderGrowth();
+}
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const idx = parseInt(btn.dataset.tab);
+    if (idx === currentTab) return;
+    switchTab(idx, true);
+  });
+});
+
+// Touch handling
+tabContainer.addEventListener('touchstart', e => {
+  swipeStartX = e.touches[0].clientX;
+  swipeStartY = e.touches[0].clientY;
+  swipeDeltaX = 0;
+  isSwiping = false;
+}, {passive: true});
+
+tabContainer.addEventListener('touchmove', e => {
+  const dx = e.touches[0].clientX - swipeStartX;
+  const dy = e.touches[0].clientY - swipeStartY;
+  if (!isSwiping && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+    isSwiping = true;
+    tabContainer.classList.remove('sliding');
+  }
+  if (!isSwiping) return;
+  swipeDeltaX = dx;
+  // Constrain: can't swipe left from home, can't swipe right from growth
+  const basePct = -currentTab * 100 / 3;
+  let offset = (dx / window.innerWidth) * 100;
+  if ((currentTab === 0 && dx < 0) || (currentTab === 2 && dx > 0) || (currentTab === 1)) {
+    // Allow
+  } else {
+    offset *= 0.3; // resistance at boundaries
+  }
+  // Clamp
+  let newPct = basePct + offset;
+  if (newPct > 0) newPct = 0;
+  if (newPct < -200/3) newPct = -200/3;
+  tabContainer.style.transform = 'translateX(' + newPct + '%)';
+  e.preventDefault();
+}, {passive: false});
+
+tabContainer.addEventListener('touchend', () => {
+  if (!isSwiping) return;
+  isSwiping = false;
+  tabContainer.classList.add('sliding');
+  const threshold = window.innerWidth * 0.2;
+  if (swipeDeltaX > threshold && currentTab > 0) {
+    switchTab(currentTab - 1, true);
+  } else if (swipeDeltaX < -threshold && currentTab < 2) {
+    switchTab(currentTab + 1, true);
+  } else {
+    // Snap back
+    const pct = -currentTab * 100 / 3;
+    tabContainer.style.transform = 'translateX(' + pct + '%)';
+  }
+}, {passive: true});
+
+// ============================================================
+// HOME TAB
+// ============================================================
+function renderHome() {
+  loadData();
+  if (homeState === 'checkin') renderCheckin();
+  else if (homeState === 'practice') renderPracticeView();
+  else if (homeState === 'done') renderDoneView();
+}
+
+function renderCheckin() {
+  updateStreakOnOpen();
+  const s = userData.streak, total = userData.totalPractices;
+  const pct = Math.min(s / 30, 1);
+  const circumference = 94.2;
+  const offset = circumference - (pct * circumference);
+  let colorClass = 'glow-green', strokeColor = 'var(--green)';
+  if (s > 7) { colorClass = 'glow-purple'; strokeColor = 'var(--purple)'; }
+  else if (s > 3) { colorClass = 'glow-gold'; strokeColor = 'var(--gold)'; }
+
+  let streakHtml;
+  if (total === 0) {
+    streakHtml = '<div class="streak-empty">🌱 首次使用，开始你的第一次练习吧</div>';
+  } else {
+    streakHtml = `<div class="streak-section">
+      <div class="streak-ring">
+        <svg width="76" height="76" viewBox="0 0 34 34">
+          <circle class="ring-bg" cx="17" cy="17" r="15"/>
+          <circle class="ring-fg" cx="17" cy="17" r="15" stroke-dasharray="94.2" stroke-dashoffset="${offset}" stroke="${strokeColor}"/>
+        </svg>
+        <div class="ring-center"><div class="num ${colorClass}">${s}</div><div class="ring-label">天</div></div>
+      </div>
+    </div>`;
+  }
+
+  let subtitle = total >= 10
+    ? `🔥 累计 ${total} 次练习 · 已探索 ${Object.keys(userData.strategyProgress).length}/${STRATEGIES.length} 个策略`
+    : '🔥 每天 2 分钟，训练你的注意力';
+
+  tabHome.innerHTML = `<div class="slide-in">
+    <div class="brand">
+      <div class="brand-icon">🧪</div>
+      <h1>专注实验室</h1>
+      <div class="sub">${subtitle}</div>
+    </div>
+    <div class="brand-divider"></div>
+    ${streakHtml}
+    <div id="checkinSection">
+      <div class="section-label">⚡ 当前精力 <span class="dim">（选一个）</span></div>
+      <div class="energy-grid" id="energyGrid">
+        <div class="opt high-energy" data-val="high"><span class="opt-icon">⚡</span><span class="opt-label">精力充沛</span><span class="opt-check">✓</span></div>
+        <div class="opt" data-val="medium"><span class="opt-icon">👍</span><span class="opt-label">正常</span><span class="opt-check">✓</span></div>
+        <div class="opt" data-val="low"><span class="opt-icon">😴</span><span class="opt-label">疲劳</span><span class="opt-check">✓</span></div>
+      </div>
+      <div class="section-label">📌 今日任务 <span class="dim">（选一个）</span></div>
+      <div class="type-grid" id="typeGrid">
+        <div class="opt type-study" data-val="study"><span class="opt-icon">📚</span><span class="opt-label">学习</span><span class="opt-check">✓</span></div>
+        <div class="opt type-work" data-val="work"><span class="opt-icon">💼</span><span class="opt-label">工作</span><span class="opt-check">✓</span></div>
+        <div class="opt type-create" data-val="create"><span class="opt-icon">🎨</span><span class="opt-label">创作</span><span class="opt-check">✓</span></div>
+        <div class="opt type-life" data-val="life"><span class="opt-icon">🏠</span><span class="opt-label">日常</span><span class="opt-check">✓</span></div>
+      </div>
+      <div class="recommend-card" id="recommendCard">
+        <div class="rec-title" id="recTitle"></div>
+        <div class="rec-desc" id="recDesc"></div>
+        <div class="rec-meta"><span id="recDiff"></span><span id="recTime"></span></div>
+      </div>
+      <button class="btn btn-primary" id="btnStart" disabled>先完成签到</button>
+    </div>
+  </div>`;
+
+  // Attach event listeners
+  const energyGrid = document.getElementById('energyGrid');
+  const typeGrid = document.getElementById('typeGrid');
+  const recommendCard = document.getElementById('recommendCard');
+  const recTitle = document.getElementById('recTitle');
+  const recDesc = document.getElementById('recDesc');
+  const recDiff = document.getElementById('recDiff');
+  const recTime = document.getElementById('recTime');
+  const btnStart = document.getElementById('btnStart');
+
+  // Reset selections
+  sessionEnergy = null;
+  sessionType = null;
+
+  energyGrid.addEventListener('click', e => {
+    const opt = e.target.closest('.opt');
+    if (!opt) return;
+    energyGrid.querySelectorAll('.opt').forEach(el => el.classList.remove('selected'));
+    opt.classList.add('selected');
+    sessionEnergy = opt.dataset.val;
+    updateRec();
+  });
+
+  typeGrid.addEventListener('click', e => {
+    const opt = e.target.closest('.opt');
+    if (!opt) return;
+    typeGrid.querySelectorAll('.opt').forEach(el => el.classList.remove('selected'));
+    opt.classList.add('selected');
+    sessionType = opt.dataset.val;
+    updateRec();
+  });
+
+  function updateRec() {
+    if (!sessionEnergy || !sessionType) {
+      btnStart.disabled = true;
+      btnStart.textContent = sessionEnergy ? '选择任务类型' : '选择精力水平';
+      recommendCard.classList.remove('show');
+      return;
+    }
+    const id = pickPractice(sessionEnergy, sessionType);
+    sessionPracticeId = id;
+    const st = STRATEGIES.find(s => s.id === id);
+    recTitle.textContent = '🧠 推荐练习：' + st.name;
+    recDesc.textContent = st.desc;
+    recDiff.textContent = '难度：' + '⭐'.repeat(st.difficulty);
+    recTime.textContent = '⏱ 约 2 分钟 · ' + (st.difficulty <= 1 ? '基础' : st.difficulty <= 2 ? '进阶' : '挑战');
+    recommendCard.classList.add('show');
+    btnStart.disabled = false;
+    btnStart.textContent = '开始今日练习 →';
+  }
+
+  btnStart.addEventListener('click', () => {
+    if (!sessionPracticeId) return;
+    homeState = 'practice';
+    renderPracticeView();
+  });
+}
+
+function pickPractice(energy, type) {
+  const recentIds = userData.practiceLog.slice(-3).map(l => l.id);
+  const progress = userData.strategyProgress;
+  const scored = STRATEGIES.map(s => {
+    let score = (progress[s.id]?.total || 0) * 10;
+    if (recentIds.includes(s.id)) score += 50;
+    if (energy === 'low' && s.difficulty >= 3) score += 30;
+    if (energy === 'high' && s.difficulty <= 1) score += 5;
+    return { id: s.id, score };
+  });
+  scored.sort((a, b) => a.score - b.score);
+  return scored[0].id;
+}
+
+function renderPracticeView() {
+  const st = STRATEGIES.find(s => s.id === sessionPracticeId);
+  if (!st) { homeState = 'checkin'; renderCheckin(); return; }
+  const instructions = st.instruction.split('\n').filter(Boolean);
+  const stepColors = ['s1','s2','s3','s4'];
+  tabHome.innerHTML = `<div class="slide-in">
+    <button class="back-btn" id="practiceBack"><span class="back-icon">‹</span> 返回</button>
+    <div class="card">
+      <div class="practice-header">
+        <div class="p-icon">${st.icon}</div>
+        <div class="p-info">
+          <div class="p-name">${st.name}</div>
+          <div class="p-diff">${'⭐'.repeat(st.difficulty)}</div>
+          <div class="p-desc">${st.desc}</div>
+        </div>
+      </div>
+      <div class="p-instruction">
+        ${instructions.map((l, i) => `
+          <div class="p-step">
+            <div class="p-step-num ${stepColors[i % stepColors.length]}">${i + 1}</div>
+            <div class="p-step-text">${l}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="practice-actions">
+        <button class="btn btn-green" id="compFull">✅ 完成了</button>
+        <button class="btn btn-secondary" id="compPartial">🔶 做了一半</button>
+        <button class="btn btn-ghost" id="compSkip">⏭ 今天先不了</button>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById('practiceBack').addEventListener('click', () => {
+    homeState = 'checkin';
+    renderCheckin();
+  });
+  document.getElementById('compFull').addEventListener('click', () => completePractice('full'));
+  document.getElementById('compPartial').addEventListener('click', () => completePractice('partial'));
+  document.getElementById('compSkip').addEventListener('click', () => completePractice('skip'));
+}
+
+function completePractice(result) {
+  const st = STRATEGIES.find(s => s.id === sessionPracticeId);
+  if (!st) return;
+  const today = getTodayStr();
+  const lastDate = userData.lastActiveDate;
+  if (!lastDate || !isToday(lastDate)) {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = formatDate(yesterday);
+    if (lastDate === yesterdayStr || !lastDate) { userData.streak += 1; }
+    else { userData.streak = 1; }
+  }
+  userData.lastActiveDate = today;
+  userData.practiceLog.push({ id: st.id, date: today, energy: sessionEnergy, type: sessionType, result });
+  if (!userData.strategyProgress[st.id]) { userData.strategyProgress[st.id] = { total: 0, completed: 0 }; }
+  userData.strategyProgress[st.id].total += 1;
+  if (result === 'full') userData.strategyProgress[st.id].completed += 1;
+  userData.totalPractices += 1;
+  saveData();
+  homeState = 'done';
+  renderDoneView(result, st);
+}
+
+function renderDoneView(result, st) {
+  const msgs = {
+    full: { emoji: '🌱', msg: '练习完成！', sub: '每一次练习都在强化你的注意力肌肉' },
+    partial: { emoji: '🌿', msg: '迈出了第一步', sub: '部分完成也是进步——关键在于持续' },
+    skip: { emoji: '🌱', msg: '没关系，下次再来', sub: '练习的门永远开着' }
+  };
+  const m = msgs[result] || msgs.skip;
+  const stName = st ? st.name : '';
+  tabHome.innerHTML = `<div class="slide-in">
+    <button class="back-btn" id="doneBack"><span class="back-icon">‹</span> 返回</button>
+    <div class="card">
+      <div class="practice-done">
+        <div class="celebration">${m.emoji}</div>
+        <div class="msg">${m.msg}</div>
+        <div class="sub">${m.sub}</div>
+        <div style="font-size:12px;color:var(--text-dim);margin:12px 0">今日练习：${stName} · ${result === 'full' ? '✅ 完成' : result === 'partial' ? '🔶 部分' : '⏭ 跳过'}</div>
+        <textarea class="note-input" placeholder="记录一个发现（可选）" id="practiceNote"></textarea>
+        <button class="btn btn-primary" id="doneToGrowth">查看我的成长 →</button>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById('doneBack').addEventListener('click', () => {
+    homeState = 'checkin';
+    renderCheckin();
+  });
+  document.getElementById('doneToGrowth').addEventListener('click', () => {
+    const note = document.getElementById('practiceNote')?.value?.trim() || '';
+    if (note && userData.practiceLog.length > 0) {
+      userData.practiceLog[userData.practiceLog.length - 1].note = note;
+      saveData();
+    }
+    homeState = 'checkin';
+    switchTab(2, true);
+  });
+}
+
+function updateStreakOnOpen() {
+  if (!userData.lastActiveDate) return;
+  const last = new Date(userData.lastActiveDate + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.floor((today - last) / (1000*60*60*24));
+  if (diff > 1) { userData.streak = 0; saveData(); }
+}
+
+// ============================================================
+// EXPLORE TAB
+// ============================================================
+function renderExplore() {
+  if (exploreState === 'list') renderScenarioList();
+  else if (exploreState === 'playing') renderScenarioPlay();
+  else if (exploreState === 'result') renderExploreResult();
+}
+
+function renderScenarioList() {
+  const sceneColors = { phone: '#fb923c', bilibili: '#f472b6', search: '#22d3ee', dream: '#a78bfa', giveup: '#94a3b8' };
+  tabExplore.innerHTML = `<div class="slide-in">
+    <div class="brand" style="padding-bottom:8px">
+      <h1 style="font-size:18px">探索模式</h1>
+      <div class="sub">观察你的注意力模式，了解自己的倾向</div>
+    </div>
+    <div class="brand-divider"></div>
+    ${SCENARIOS.map((s, i) => `
+      <div class="scenario-card" data-idx="${i}">
+        <div class="s-top-bar" style="background:${sceneColors[s.id] || '#666'}"></div>
+        <div class="s-icon">${s.sceneIcon}</div>
+        <div class="s-info">
+          <div class="s-title">${s.title}</div>
+          <div class="s-desc">${s.desc}</div>
+          <div class="s-tag">${s.choices[0].isDefault ? '🔄 默认反应：' + s.choices[0].label : ''}</div>
+        </div>
+      </div>
+    `).join('')}
+  </div>`;
+
+  tabExplore.querySelectorAll('.scenario-card').forEach(el => {
+    el.addEventListener('click', () => {
+      currentScenarioIdx = parseInt(el.dataset.idx);
+      simState = { currentRound: currentScenarioIdx, totalTime: 0, choiceLog: [...simState.choiceLog] };
+      exploreState = 'playing';
+      renderScenarioPlay();
+    });
+  });
+}
+
+function renderScenarioPlay() {
+  const sc = SCENARIOS[currentScenarioIdx];
+  if (!sc) { exploreState = 'list'; renderScenarioList(); return; }
+  const sceneColors = { phone: 'phone', bilibili: 'bilibili', search: 'search', dream: 'dream', giveup: 'giveup' };
+
+  // Check if already played this round
+  const alreadyPlayed = simState.choiceLog.find(l => l.round === currentScenarioIdx);
+
+  if (alreadyPlayed) {
+    // Show consequence view
+    tabExplore.innerHTML = `<div class="slide-in">
+      <button class="back-btn" id="scBack"><span class="back-icon">‹</span> 返回列表</button>
+      <div class="card scenario-active">
+        <div class="sc-top-bar ${sceneColors[sc.id] || ''}" style="margin:-16px -16px 12px;height:3px;border-radius:14px 14px 0 0"></div>
+        <div class="sc-title"><span>${sc.sceneIcon}</span> ${sc.title}</div>
+        <div class="sc-desc">${sc.desc}</div>
+        <div class="consequence-box"><div class="c-label">结果</div><div class="c-text">${alreadyPlayed.consequence}</div></div>
+        <div class="observation-box"><div class="o-label">👁 注意力观察</div><div class="o-text">${alreadyPlayed.observation}</div></div>
+        <button class="btn btn-primary" id="scNext">${currentScenarioIdx < SCENARIOS.length - 1 ? '下一个场景 →' : '查看总结 →'}</button>
+      </div>
+    </div>`;
+    document.getElementById('scBack').addEventListener('click', () => { exploreState = 'list'; renderScenarioList(); });
+    document.getElementById('scNext').addEventListener('click', () => {
+      if (currentScenarioIdx < SCENARIOS.length - 1) {
+        currentScenarioIdx++;
+        simState.currentRound = currentScenarioIdx;
+        renderScenarioPlay();
+      } else {
+        exploreState = 'result';
+        renderExploreResult();
+      }
+    });
+    return;
+  }
+
+  // Show choices
+  const defaultChoice = sc.choices.find(c => c.isDefault);
+  const strategyChoice = sc.choices.find(c => !c.isDefault);
+  tabExplore.innerHTML = `<div class="slide-in">
+    <button class="back-btn" id="scBack"><span class="back-icon">‹</span> 返回列表</button>
+    <div class="card scenario-active">
+      <div class="sc-top-bar ${sceneColors[sc.id] || ''}" style="margin:-16px -16px 12px;height:3px;border-radius:14px 14px 0 0"></div>
+      <div class="sc-title"><span>${sc.sceneIcon}</span> ${sc.title}</div>
+      <div class="sc-desc">${sc.desc}</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">你会怎么做？</div>
+      <div class="choice-card default" data-choice-id="${defaultChoice.id}">
+        <div class="choice-label">${defaultChoice.label} <span class="choice-badge">默认反应</span></div>
+        <div class="choice-time">⏱ 约损失 ${defaultChoice.timePassed} 分钟</div>
+      </div>
+      <div class="choice-card strategy" data-choice-id="${strategyChoice.id}">
+        <div class="choice-label">${strategyChoice.label} <span class="choice-badge">尝试策略</span></div>
+        <div class="choice-time">⏱ 不浪费时间</div>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById('scBack').addEventListener('click', () => { exploreState = 'list'; renderScenarioList(); });
+  tabExplore.querySelectorAll('.choice-card').forEach(el => {
+    el.addEventListener('click', () => {
+      const choiceId = el.dataset.choiceId;
+      const choice = sc.choices.find(c => c.id === choiceId);
+      if (!choice) return;
+      simState.totalTime += choice.timePassed;
+      simState.choiceLog.push({
+        round: currentScenarioIdx,
+        choiceId: choice.id,
+        label: choice.label,
+        isDefault: choice.isDefault,
+        timePassed: choice.timePassed,
+        consequence: choice.consequence,
+        observation: choice.observation
+      });
+      saveData();
+      renderScenarioPlay(); // re-render to show consequence
+    });
+  });
+}
+
+function renderExploreResult() {
+  const defaultCount = simState.choiceLog.filter(l => l.isDefault).length;
+  const strategyCount = simState.choiceLog.filter(l => !l.isDefault).length;
+  const pct = SCENARIOS.length > 0 ? Math.round((strategyCount / SCENARIOS.length) * 100) : 0;
+
+  userData.lastSimChoices = simState.choiceLog.map(l => ({ round: l.round, choiceId: l.choiceId }));
+  saveData();
+
+  let insight;
+  if (pct === 0) insight = '你的注意力模式以默认反应为主——这不是你的错，这是人类大脑的默认设置。关键在于意识到这些模式，然后一次一次地练习新的反应。';
+  else if (pct <= 40) insight = '你开始有意识地在一些场景中选择不同的策略了。注意那些你成功抵抗了默认反应的时刻——那是你的前额叶皮层在成长。';
+  else insight = '你在大多数场景中都尝试了策略性选择！这说明你已经具备了元认知能力——意识到自己的注意力走向并主动干预。继续保持。';
+
+  tabExplore.innerHTML = `<div class="slide-in">
+    <div class="sim-summary">
+      <div style="font-size:32px;margin-bottom:4px">${pct >= 50 ? '🧠' : '🌱'}</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">注意力模式观察</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px">模拟了 ${SCENARIOS.length} 个场景</div>
+      <div class="sim-total">${simState.totalTime}</div>
+      <div class="sim-total-label">总共浪费时间（分钟）</div>
+      <div class="sim-choices">
+        <div class="sim-choice-item default-true">
+          <span class="sc-icon">🔄</span>
+          <span class="sc-name">默认反应（${defaultCount} 次）</span>
+          <span class="sc-time">${simState.choiceLog.filter(l => l.isDefault).reduce((a, c) => a + c.timePassed, 0)} 分钟</span>
+        </div>
+        <div class="sim-choice-item default-false">
+          <span class="sc-icon">💡</span>
+          <span class="sc-name">尝试策略（${strategyCount} 次）</span>
+          <span class="sc-time">${simState.choiceLog.filter(l => !l.isDefault).reduce((a, c) => a + c.timePassed, 0)} 分钟</span>
+        </div>
+      </div>
+      <div class="sim-insight">${insight}</div>
+      <button class="btn btn-primary" id="simRestart">再探索一次</button>
+      <button class="btn btn-secondary" id="simToGrowth" style="margin-top:8px">查看成长 →</button>
+    </div>
+  </div>`;
+
+  document.getElementById('simRestart').addEventListener('click', () => {
+    simState = { currentRound: 0, totalTime: 0, choiceLog: [] };
+    exploreState = 'list';
+    renderScenarioList();
+  });
+  document.getElementById('simToGrowth').addEventListener('click', () => {
+    exploreState = 'list';
+    switchTab(2, true);
+  });
+}
+
+// ============================================================
+// GROWTH TAB
+// ============================================================
+function renderGrowth() {
+  loadData();
+  const today = getTodayStr();
+  const todayPractices = userData.practiceLog.filter(l => l.date === today);
+  const todayName = todayPractices.length > 0 ? (STRATEGIES.find(s => s.id === todayPractices[0].id)?.name || '—') : '—';
+  const todayResult = todayPractices.length > 0 ? todayPractices[0].result : null;
+
+  // Calendar
+  const now = new Date();
+  const dayNames = ['日','一','二','三','四','五','六'];
+  let calDays = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const str = formatDate(d);
+    const logs = userData.practiceLog.filter(l => l.date === str);
+    let dotClass = '';
+    if (logs.length > 0) {
+      const r = logs[0].result;
+      dotClass = r === 'full' ? 'full' : r === 'partial' ? 'partial' : 'skip';
+    }
+    calDays.push({ label: dayNames[d.getDay()], dateStr: str, isToday: isToday(str), dotClass });
+  }
+
+  const totalStrats = STRATEGIES.length;
+  const exploredStrats = Object.keys(userData.strategyProgress).length;
+  const completedStrats = Object.values(userData.strategyProgress).filter(p => p.completed > 0).length;
+
+  let insight = '';
+  if (todayResult === 'full') insight = '今天的练习完成了。注意这个感觉——这就是"做到了"的体验。下次想拖延时，回忆一下这个感觉。';
+  else if (todayResult === 'partial') insight = '你迈出了第一步。行为改变的秘诀不是每次都完美，而是"不断地重新开始"。';
+  else if (todayResult === 'skip') insight = '跳过也是一种选择——关键是你不必为此愧疚。明天又是新的机会。';
+  else if (userData.totalPractices > 0) insight = '每一段专注的时光都在重塑你的大脑。关键是持续，不是完美。';
+  else insight = '完成第一次练习，开启你的专注力训练之旅。';
+
+  // Strategy library
+  const stratRows = STRATEGIES.map(s => {
+    const p = userData.strategyProgress[s.id];
+    const count = p ? p.total : 0;
+    const checked = p && p.completed > 0 ? '<span class="sm-check">✓</span>' : '';
+    return `<div class="strategy-mini-card">
+      <div class="sm-icon">${s.icon}</div>
+      <div class="sm-name">${s.name}</div>
+      <div class="sm-progress">${count > 0 ? '练习 ' + count + ' 次' : '未练习'}</div>
+      ${checked}
+    </div>`;
+  }).join('');
+
+  tabGrowth.innerHTML = `<div class="slide-in">
+    <div class="brand" style="padding-bottom:8px">
+      <h1 style="font-size:18px">📈 成长记录</h1>
+      <div class="sub">${userData.totalPractices > 0 ? '累计 ' + userData.totalPractices + ' 次练习 · 坚持 ' + userData.streak + ' 天' : '还没开始你的练习之旅'}</div>
+    </div>
+    <div class="brand-divider"></div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🧪</div>
+        <div class="stat-num green">${userData.totalPractices}</div>
+        <div class="stat-label">总练习</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-num gold">${userData.streak}</div>
+        <div class="stat-label">连续天数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📖</div>
+        <div class="stat-num purple">${exploredStrats}</div>
+        <div class="stat-label">已探索/${totalStrats}</div>
+      </div>
+    </div>
+
+    <div class="section-label">📅 最近 7 天</div>
+    <div class="calendar-grid">
+      ${calDays.map(d => `
+        <div class="cal-day${d.isToday ? ' today' : ''}">
+          <div class="day-label">${d.label}</div>
+          <div style="font-size:13px;margin-top:1px">${d.isToday ? '今' : d.dateStr.slice(-2)}</div>
+          <div class="day-dot ${d.dotClass}"></div>
+        </div>
+      `).join('')}
+    </div>
+
+    ${insight ? `<div class="observation-box" style="margin-bottom:16px"><div class="o-label">💡 今日观察</div><div class="o-text">${insight}</div></div>` : ''}
+
+    <div class="section-header">
+      <div class="sh-title">🎒 策略库</div>
+    </div>
+    <div class="strategy-grid">${stratRows}</div>
+    <div class="spacer"></div>
+  </div>`;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadData();
+renderCurrentTab();
+</script>
+</body>
+</html>

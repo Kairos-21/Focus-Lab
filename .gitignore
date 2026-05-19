@@ -1,0 +1,21 @@
+# IDE / Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/
+
+# Dependencies
+node_modules/
+
+# Env
+.env
+.env.local
+
+# Build output
+dist/
+build/

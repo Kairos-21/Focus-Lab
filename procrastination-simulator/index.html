@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>专注实验室</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a12;
+    --surface: #14141f;
+    --surface2: #1c1c2e;
+    --surface3: #24243a;
+    --border: #2a2a40;
+    --text: #e8e8f0;
+    --text-dim: #7a7a8a;
+    --text-dimmer: #555568;
+    --gold: #f59e0b;
+    --red: #ef4444;
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --cyan: #06b6d4;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  @keyframes slideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  @keyframes countUp { from{opacity:0;transform:scale(1.3)} to{opacity:1;transform:scale(1)} }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+  html,body{height:100%;font-family:-apple-system,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-user-select:none;user-select:none}
+  body{display:flex;justify-content:center;align-items:center}
+
+  #app{width:100%;max-width:480px;height:100dvh;position:relative;overflow:hidden;background:var(--bg)}
+
+  /* ===== Screens ===== */
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity 0.4s ease,transform 0.4s ease;transform:translateY(12px);overflow-y:auto}
+  .screen.active{opacity:1;pointer-events:auto;transform:translateY(0);z-index:10}
+
+  /* ===== Common ===== */
+  .btn{
+    padding:14px 28px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;
+    transition:all 0.25s;
+  }
+  .btn:active{transform:scale(0.97)}
+  .btn-primary{
+    background:linear-gradient(135deg,var(--gold),#f97316);color:#000;
+    box-shadow:0 4px 20px rgba(245,158,11,0.25);
+  }
+  .btn-primary:hover{box-shadow:0 6px 28px rgba(245,158,11,0.35)}
+  .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+  .btn-secondary:hover{background:var(--surface3)}
+  .btn-green{background:var(--green);color:#000}
+  .btn-ghost{background:transparent;color:var(--text-dim);border:1px solid transparent;padding:10px 16px;font-size:13px}
+  .btn-ghost:hover{color:var(--text);background:var(--surface2)}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none!important}
+
+  ::-webkit-scrollbar{width:3px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+  /* ===== SCREEN: HOME ===== */
+  #screen-home{
+    justify-content:flex-start;padding:28px 20px;overflow-y:auto;
+    background:radial-gradient(ellipse at 50% 0%,#1a1a2e 0%,var(--bg) 60%);
+  }
+  .home-brand{text-align:center;margin-bottom:20px}
+  .home-brand .icon{font-size:36px;margin-bottom:2px}
+  .home-brand h1{font-size:24px;font-weight:700;background:linear-gradient(135deg,var(--gold),#f97316);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .home-brand .sub{font-size:12px;color:var(--text-dim);margin-top:2px}
+  .home-streak{text-align:center;margin-bottom:16px;font-size:13px;color:var(--text-dim)}
+  .home-streak .num{color:var(--gold);font-weight:700;font-size:16px}
+
+  .section-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px}
+  .section-card h3{font-size:13px;color:var(--text-dim);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+  .energy-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .energy-grid .opt{
+    padding:12px 8px;text-align:center;background:var(--surface2);border:1px solid var(--border);
+    border-radius:10px;font-size:13px;cursor:pointer;transition:all 0.2s;color:var(--text-dim)
+  }
+  .energy-grid .opt:active{transform:scale(0.96)}
+  .energy-grid .opt.selected{background:rgba(245,158,11,0.12);border-color:var(--gold);color:var(--gold)}
+
+  .type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .type-grid .opt{
+    padding:12px;text-align:center;background:var(--surface2);border:1px solid var(--border);
+    border-radius:10px;font-size:13px;cursor:pointer;transition:all 0.2s;color:var(--text-dim)
+  }
+  .type-grid .opt:active{transform:scale(0.96)}
+  .type-grid .opt.selected{background:rgba(59,130,246,0.10);border-color:var(--blue);color:var(--blue)}
+
+  .practice-recommend{
+    background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:10px;
+    padding:14px;margin-top:10px;display:none;
+  }
+  .practice-recommend.show{display:block;animation:fadeIn 0.4s ease}
+  .practice-recommend .rec-title{font-size:13px;font-weight:600;color:var(--green);margin-bottom:3px}
+  .practice-recommend .rec-desc{font-size:12px;color:var(--text-dim);line-height:1.5}
+  .practice-recommend .rec-diff{font-size:11px;color:var(--text-dimmer);margin-top:4px}
+
+  .home-actions{margin-top:6px}
+  .home-actions .btn{width:100%;margin-bottom:8px}
+  .home-divider{text-align:center;font-size:11px;color:var(--text-dimmer);margin:6px 0 10px;letter-spacing:0.5px}
+  .home-secondary{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .home-secondary .btn{font-size:13px;padding:12px;text-align:center}
+
+  /* ===== Strategy library (in home) ===== */
+  .strategy-header{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+  .strategy-header .back-btn{background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;padding:4px}
+  .strategy-header .back-btn:active{transform:scale(0.9)}
+  .strategy-header h2{font-size:18px;font-weight:700}
+
+  .strategy-grid{display:flex;flex-direction:column;gap:8px}
+  .strategy-item{
+    display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface2);
+    border:1px solid var(--border);border-radius:10px;cursor:default;
+  }
+  .strategy-item .s-icon{font-size:20px;width:28px;text-align:center}
+  .strategy-item .s-info{flex:1}
+  .strategy-item .s-name{font-size:14px;font-weight:600}
+  .strategy-item .s-meta{font-size:11px;color:var(--text-dimmer);margin-top:1px}
+  .strategy-item .s-count{font-size:12px;color:var(--green);font-weight:600}
+  .strategy-item .s-count.unused{color:var(--text-dimmer)}
+
+  /* ===== SCREEN: PRACTICE ===== */
+  #screen-practice{padding:24px 20px;overflow-y:auto;background:var(--bg)}
+  .practice-back{font-size:13px;color:var(--text-dim);cursor:pointer;padding:4px 0;display:inline-block;margin-bottom:12px}
+  .practice-back:active{opacity:0.6}
+
+  .practice-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:24px 20px;animation:fadeIn 0.4s ease;flex:1;
+  }
+  .practice-card .p-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .practice-card .p-header .p-icon{font-size:28px}
+  .practice-card .p-header .p-title{font-size:18px;font-weight:700}
+  .practice-card .p-header .p-diff{font-size:11px;color:var(--text-dimmer);margin-left:auto}
+  .practice-card .p-desc{font-size:13px;color:var(--text-dim);line-height:1.7;margin-bottom:4px}
+  .practice-card .p-instruction{
+    background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:10px;
+    padding:16px;margin:14px 0;font-size:14px;line-height:1.7;color:var(--text);
+  }
+  .practice-card .p-instruction li{margin-bottom:6px;list-style:disc;margin-left:18px}
+
+  .practice-actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+  .practice-actions .btn{padding:14px;text-align:center}
+
+  .practice-done{text-align:center;padding:20px 0;animation:fadeIn 0.5s ease}
+  .practice-done .big{font-size:40px;margin-bottom:8px}
+  .practice-done .msg{font-size:16px;font-weight:600;margin-bottom:4px}
+  .practice-done .sub{font-size:13px;color:var(--text-dim);margin-bottom:16px}
+  .practice-done .note-input{
+    width:100%;padding:12px;background:var(--surface2);border:1px solid var(--border);
+    border-radius:10px;color:var(--text);font-size:13px;outline:none;resize:none;
+    font-family:inherit;margin-bottom:12px;min-height:60px;
+  }
+  .practice-done .note-input:focus{border-color:var(--gold)}
+
+  /* ===== SCREEN: GAME (Simulation) ===== */
+  #screen-game{background:var(--bg)}
+
+  .game-header{
+    padding:12px 16px 10px;background:var(--surface);border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .game-header .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .game-header .round-label{font-size:11px;color:var(--text-dim);letter-spacing:0.5px}
+  .game-header .round-num{font-size:11px;color:var(--gold);font-weight:600}
+  .game-header .timer-row{display:flex;justify-content:space-between;align-items:baseline}
+  .game-header .timer{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:0.5px}
+  .game-header .timer .unit{font-size:11px;font-weight:400;color:var(--text-dim);margin-left:4px}
+  .game-header .progress-pct{font-size:12px;color:var(--text-dim)}
+
+  .game-scene{
+    flex:1;padding:20px 16px;display:flex;flex-direction:column;
+    overflow-y:auto;min-height:0;
+  }
+  .scenario-context{
+    background:var(--surface);border-radius:12px;padding:20px;border:1px solid var(--border);
+    margin-bottom:16px;animation:fadeIn 0.4s ease;
+  }
+  .scenario-context .scene-icon{font-size:36px;margin-bottom:8px}
+  .scenario-context .scene-title{font-size:17px;font-weight:700;margin-bottom:6px}
+  .scenario-context .scene-desc{font-size:13px;color:var(--text-dim);line-height:1.7}
+
+  .choices{display:flex;flex-direction:column;gap:10px;animation:slideUp 0.4s ease}
+  .choice-card{
+    display:block;padding:16px;background:var(--surface2);border:1px solid var(--border);
+    border-radius:12px;cursor:pointer;transition:all 0.25s;text-align:left;width:100%;
+    font-family:inherit;
+  }
+  .choice-card:active{transform:scale(0.98)}
+  .choice-card .choice-label{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .choice-card .choice-sub{font-size:12px;color:var(--text-dimmer);margin-top:2px}
+  .choice-card:hover{border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.04)}
+  .choice-card.discover{border-color:rgba(34,197,94,0.2)}
+  .choice-card.discover:hover{border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.04)}
+  .choice-card .badge{
+    display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;
+    margin-bottom:4px;font-weight:600;
+  }
+  .choice-card .badge.natural{background:rgba(239,68,68,0.1);color:var(--red)}
+  .choice-card .badge.practice{background:rgba(34,197,94,0.1);color:var(--green)}
+
+  .consequence-box{
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;
+    animation:fadeIn 0.4s ease;margin-bottom:16px;
+  }
+  .consequence-box .cons-icon{font-size:28px;margin-bottom:8px}
+  .consequence-box .cons-text{font-size:14px;line-height:1.7;color:var(--text-dim)}
+  .consequence-box .cons-obs{
+    font-size:12px;color:var(--text-dimmer);margin-top:8px;padding:8px 10px;
+    background:rgba(59,130,246,0.06);border-radius:6px;line-height:1.5;
+  }
+
+  .game-narration{
+    padding:10px 16px;background:var(--surface);border-top:1px solid var(--border);
+    min-height:48px;display:flex;flex-direction:column;justify-content:center;flex-shrink:0;
+  }
+  .game-narration .label{font-size:10px;color:var(--text-dim);letter-spacing:0.5px;display:flex;align-items:center;gap:4px;margin-bottom:2px}
+  .game-narration .label .dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:pulse 2s infinite}
+  .game-narration .text{font-size:13px;line-height:1.6;min-height:20px}
+  .game-narration .text .cursor{display:inline-block;width:2px;height:14px;background:var(--cyan);margin-left:1px;animation:blink 1s step-end infinite;vertical-align:text-bottom}
+
+  .btn-continue{
+    display:block;width:100%;padding:12px;margin-top:8px;
+    background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+    color:var(--text);font-size:14px;cursor:pointer;font-family:inherit;
+    transition:all 0.2s;animation:fadeIn 0.3s ease;
+  }
+  .btn-continue:active{transform:scale(0.97)}
+
+  /* ===== SCREEN: RESULT (Growth) ===== */
+  #screen-result{
+    justify-content:flex-start;padding:28px 20px;overflow-y:auto;
+    background:radial-gradient(ellipse at 50% 0%,#1a1a2e 0%,var(--bg) 60%);
+  }
+  .growth-header{text-align:center;margin-bottom:20px}
+  .growth-header .emoji{font-size:48px;margin-bottom:4px;animation:countUp 0.6s ease}
+  .growth-header h2{font-size:20px;font-weight:700;margin-bottom:2px}
+  .growth-header .sub{font-size:13px;color:var(--text-dim)}
+
+  .growth-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .growth-stat{
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:14px;text-align:center;
+  }
+  .growth-stat .num{font-size:24px;font-weight:700;color:var(--gold)}
+  .growth-stat .label{font-size:11px;color:var(--text-dimmer);margin-top:2px}
+
+  .growth-calendar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+  .growth-calendar h3{font-size:12px;color:var(--text-dim);margin-bottom:8px}
+  .growth-calendar .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+  .growth-calendar .cal-grid .day-label{font-size:10px;color:var(--text-dimmer);padding:2px}
+  .growth-calendar .cal-grid .day{
+    font-size:12px;padding:6px 0;border-radius:6px;color:var(--text-dim);
+    background:var(--surface2);
+  }
+  .growth-calendar .cal-grid .day.today{color:var(--gold);font-weight:600}
+  .growth-calendar .cal-grid .day.done{background:rgba(34,197,94,0.15);color:var(--green)}
+  .growth-calendar .cal-grid .day.future{background:transparent;color:var(--text-dimmer);opacity:0.3}
+
+  .growth-tip{
+    background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:10px;
+    padding:14px;margin-bottom:14px;font-size:13px;line-height:1.6;color:var(--text-dim)
+  }
+  .growth-tip strong{color:var(--blue)}
+
+  .growth-actions{margin-top:4px}
+  .growth-actions .btn{width:100%;margin-bottom:8px}
+  .growth-actions .tip{font-size:11px;color:var(--text-dimmer);text-align:center}
+
+  /* Simulation result (no grade) */
+  .sim-pattern{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
+  .sim-pattern h3{font-size:13px;color:var(--cyan);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .sim-pattern .p-item{padding:4px 0;font-size:13px;color:var(--text-dim);line-height:1.6}
+  .sim-pattern .p-item .tag{
+    display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;margin-right:4px;
+  }
+  .sim-pattern .p-item .tag.default{background:rgba(239,68,68,0.1);color:var(--red)}
+  .sim-pattern .p-item .tag.tried{background:rgba(34,197,94,0.1);color:var(--green)}
+  .sim-timeline{margin-top:8px}
+  .sim-timeline .tl-item{
+    display:flex;align-items:flex-start;gap:10px;padding:5px 0;
+    font-size:12px;animation:slideUp 0.3s ease both;
+  }
+  .sim-timeline .tl-item .tl-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+  .sim-timeline .tl-item .tl-dot.default{background:var(--red)}
+  .sim-timeline .tl-item .tl-dot.tried{background:var(--green)}
+  .sim-timeline .tl-item .tl-text{flex:1}
+  .sim-timeline .tl-item .tl-text .tl-choice{color:var(--text-dim)}
+  .sim-timeline .tl-item .tl-text .tl-obs{color:var(--text-dimmer);font-size:11px}
+
+  /* ===== Ambient Background Glow ===== */
+  #screen-home::before, #screen-practice::before, #screen-game::before, #screen-result::before {
+    content:'';position:fixed;top:-20%;left:-10%;width:120%;height:70%;
+    pointer-events:none;z-index:0;transition:background 0.8s ease;
+  }
+  #screen-home::before{background:radial-gradient(ellipse,rgba(245,158,11,0.07) 0%,transparent 70%)}
+  #screen-practice::before{background:radial-gradient(ellipse,rgba(59,130,246,0.07) 0%,transparent 70%)}
+  #screen-result::before{background:radial-gradient(ellipse,rgba(34,197,94,0.06) 0%,transparent 70%)}
+  #screen-home > *,#screen-practice > *,#screen-game > *,#screen-result > *{position:relative;z-index:1}
+
+  #screen-game::before{background:radial-gradient(ellipse,var(--glow-color,rgba(6,182,212,0.05)) 0%,transparent 70%)}
+
+  /* Subtle dot grid overlay */
+  #app::after{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:radial-gradient(var(--border) 1px,transparent 1px);
+    background-size:32px 32px;opacity:0.3;
+  }
+
+  /* ===== Streak Ring ===== */
+  .streak-wrap{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:18px}
+  .streak-ring{position:relative;width:72px;height:72px;flex-shrink:0}
+  .streak-ring svg{transform:rotate(-90deg);width:72px;height:72px}
+  .streak-ring .ring-bg{fill:none;stroke:var(--surface2);stroke-width:5}
+  .streak-ring .ring-fg{fill:none;stroke:var(--green);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset 0.6s ease,stroke 0.4s}
+  .streak-ring .ring-center{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    text-align:center;
+  }
+  .streak-ring .ring-center .num{font-size:20px;font-weight:800;display:block;line-height:1}
+  .streak-ring .ring-center .num.glow-green{color:var(--green)}
+  .streak-ring .ring-center .num.glow-gold{color:var(--gold)}
+  .streak-ring .ring-center .num.glow-purple{color:var(--purple)}
+  .streak-ring .ring-center .lbl{font-size:9px;color:var(--text-dimmer)}
+  .streak-info{flex:1;min-width:0}
+  .streak-info .main{font-size:15px;font-weight:700;color:var(--text)}
+  .streak-info .sub{font-size:11px;color:var(--text-dimmer);margin-top:1px}
+
+  /* ===== Brand Enhancement ===== */
+  .home-brand{margin-bottom:22px}
+  .home-brand .icon-wrap{
+    width:56px;height:56px;border-radius:16px;margin:0 auto 10px;
+    background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(249,115,22,0.06));
+    border:1px solid rgba(245,158,11,0.15);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 30px rgba(245,158,11,0.08);
+  }
+  .home-brand .icon-wrap .icon{font-size:26px}
+  .home-brand h1{font-size:26px;font-weight:800;letter-spacing:-0.5px}
+  .home-brand .brand-divider{
+    width:40px;height:2px;margin:8px auto;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent);
+    border-radius:1px;
+  }
+  .home-brand .sub{font-size:12px;color:var(--text-dimmer)}
+
+  /* ===== Section Card Enhancement ===== */
+  .section-card{
+    background:linear-gradient(135deg,var(--surface),rgba(20,20,31,0.8));
+    border-color:var(--border);
+    box-shadow:0 2px 16px rgba(0,0,0,0.15);
+  }
+
+  /* ===== Check-in Option Enhancement ===== */
+  .energy-grid .opt, .type-grid .opt{position:relative;padding:14px 8px;font-weight:500}
+  .energy-grid .opt .check, .type-grid .opt .check{
+    position:absolute;top:4px;right:5px;font-size:9px;opacity:0;
+    transition:opacity 0.2s;
+  }
+  .energy-grid .opt.selected .check, .type-grid .opt.selected .check{opacity:1}
+  .energy-grid .opt.selected{
+    background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.05));
+    box-shadow:0 2px 12px rgba(245,158,11,0.08);
+    transform:translateY(-1px);
+  }
+  .type-grid .opt[data-val="study"].selected{
+    background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(59,130,246,0.04));border-color:var(--blue);color:var(--blue)
+  }
+  .type-grid .opt[data-val="work"].selected{
+    background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.04));border-color:var(--gold);color:var(--gold)
+  }
+  .type-grid .opt[data-val="create"].selected{
+    background:linear-gradient(135deg,rgba(168,85,247,0.12),rgba(168,85,247,0.04));border-color:var(--purple);color:var(--purple)
+  }
+  .type-grid .opt[data-val="daily"].selected{
+    background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(34,197,94,0.04));border-color:var(--green);color:var(--green)
+  }
+
+  .practice-recommend.show{
+    border-left:3px solid var(--green);
+    background:linear-gradient(135deg,rgba(34,197,94,0.06),rgba(34,197,94,0.02));
+    border-radius:0 10px 10px 0;
+  }
+  .practice-recommend .rec-title{font-size:14px}
+  .practice-recommend .rec-time{font-size:11px;color:var(--text-dimmer);margin-top:4px}
+
+  /* ===== Home Secondary Buttons ===== */
+  .home-divider{
+    display:flex;align-items:center;gap:10px;margin:8px 0 12px;
+    font-size:10px;color:var(--text-dimmer);
+  }
+  .home-divider::before,.home-divider::after{
+    content:'';flex:1;height:1px;
+    background:linear-gradient(90deg,transparent,var(--border),transparent);
+  }
+  .home-secondary .btn{
+    padding:14px 12px;background:var(--surface);
+    border:1px solid var(--border);border-radius:12px;
+    font-size:14px;transition:all 0.25s;
+  }
+  .home-secondary .btn:hover{
+    border-color:rgba(245,158,11,0.2);
+    background:linear-gradient(135deg,var(--surface),rgba(245,158,11,0.04));
+  }
+  .home-secondary .btn:active{transform:scale(0.97)}
+
+  /* ===== Practice Step Visual ===== */
+  .p-step{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+  .p-step:last-child{margin-bottom:0}
+  .p-step-num{
+    width:24px;height:24px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;color:#fff;margin-top:1px;
+  }
+  .p-step-num.s1{background:var(--blue)}
+  .p-step-num.s2{background:var(--green)}
+  .p-step-num.s3{background:var(--gold);color:#000}
+  .p-step-num.s4{background:var(--purple)}
+  .p-step-text{font-size:14px;line-height:1.6;color:var(--text);padding-top:2px}
+  .practice-card .p-instruction{
+    background:linear-gradient(135deg,rgba(59,130,246,0.05),rgba(59,130,246,0.02));
+    padding:18px;
+  }
+
+  .practice-done .celebration{
+    display:inline-block;font-size:56px;margin-bottom:6px;
+    animation:celebrate 0.6s ease;
+  }
+  @keyframes celebrate{
+    0%{transform:scale(0) rotate(-10deg);opacity:0}
+    50%{transform:scale(1.2) rotate(5deg)}
+    100%{transform:scale(1) rotate(0deg);opacity:1}
+  }
+
+  /* ===== Growth View Enhancement ===== */
+  .growth-stat{
+    position:relative;overflow:hidden;
+    background:linear-gradient(135deg,var(--surface),var(--surface2));
+  }
+  .growth-stat .stat-icon{font-size:18px;margin-bottom:2px;display:block}
+  .growth-stat .num{font-size:26px}
+  .growth-stat .num.muted{color:var(--text-dimmer)}
+
+  .growth-calendar .cal-grid .day{position:relative;padding:8px 0;font-size:11px;font-weight:500}
+  .growth-calendar .cal-grid .day .dot{
+    width:4px;height:4px;border-radius:50%;position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
+  }
+  .growth-calendar .cal-grid .day .dot.full{background:var(--green)}
+  .growth-calendar .cal-grid .day .dot.partial{background:var(--gold)}
+  .growth-calendar .cal-grid .day .dot.skip{background:var(--text-dimmer)}
+
+  .growth-tip{
+    border-left:3px solid var(--blue);
+    border-radius:0 10px 10px 0;
+    background:linear-gradient(135deg,rgba(59,130,246,0.05),rgba(59,130,246,0.02));
+  }
+
+  /* ===== Scenario Color Accents ===== */
+  .scenario-accent{
+    height:3px;border-radius:3px 3px 0 0;margin:-1px -1px 0;
+  }
+  .scenario-accent.phone{background:linear-gradient(90deg,#f97316,#fb923c)}
+  .scenario-accent.bilibili{background:linear-gradient(90deg,#ec4899,#f472b6)}
+  .scenario-accent.search{background:linear-gradient(90deg,#06b6d4,#22d3ee)}
+  .scenario-accent.dream{background:linear-gradient(90deg,#a855f7,#c084fc)}
+  .scenario-accent.giveup{background:linear-gradient(90deg,#64748b,#94a3b8)}
+
+  .scenario-context{
+    padding:0;overflow:hidden;
+    background:linear-gradient(135deg,var(--surface),rgba(20,20,31,0.9));
+  }
+  .scenario-context .sc-body{padding:16px 20px 20px}
+
+  /* ===== Enhanced Choice Cards ===== */
+  .choice-card{
+    border-left:3px solid transparent;
+    background:linear-gradient(135deg,var(--surface2),rgba(28,28,46,0.8));
+    transition:all 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  .choice-card:not(.exhausted):hover{
+    transform:translateY(-2px);
+    box-shadow:0 4px 16px rgba(0,0,0,0.2);
+  }
+  .choice-card .badge{font-size:9px;padding:2px 7px;border-radius:3px}
+  .choice-card.discover{border-left-color:var(--green)}
+  .choice-card.discover:hover{border-color:rgba(34,197,94,0.3);border-left-color:var(--green)}
+  .choice-card:not(.discover):not(.exhausted):hover{border-color:rgba(245,158,11,0.2);border-left-color:var(--gold)}
+
+  /* ===== Consequence Enhancement ===== */
+  .consequence-box{
+    background:linear-gradient(135deg,var(--surface),rgba(20,20,31,0.9));
+    border-left:3px solid var(--border);
+  }
+
+  /* ===== Narration Enhancement ===== */
+  .game-narration{
+    background:linear-gradient(0deg,var(--surface),rgba(20,20,31,0.95));
+    border-top:1px solid rgba(42,42,64,0.5);
+  }
+  .game-narration .label .dot{width:6px;height:6px}
+
+  /* ===== Button Enhancement ===== */
+  .btn-primary{
+    position:relative;overflow:hidden;
+    transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .btn-primary:active:not(:disabled){transform:scale(0.96)}
+  .btn-secondary{
+    transition:all 0.25s cubic-bezier(0.4,0,0.2,1);
+    background:linear-gradient(135deg,var(--surface2),rgba(28,28,46,0.8));
+  }
+  .btn-secondary:hover{border-color:rgba(245,158,11,0.2)}
+
+  /* ===== Strategy Library Enhancement ===== */
+  .strategy-item{
+    background:linear-gradient(135deg,var(--surface2),rgba(28,28,46,0.8));
+    border-left:3px solid transparent;
+    transition:all 0.2s;
+  }
+  .strategy-item:hover{border-left-color:var(--gold);background:var(--surface3)}
+  .strategy-item .s-count{
+    padding:2px 8px;border-radius:6px;
+    background:rgba(34,197,94,0.08);font-size:11px;
+  }
+  .strategy-item .s-count.unused{background:transparent;color:var(--text-dimmer)}
+
+  /* ===== Responsive ===== */
+  @media (max-height:700px){
+    #screen-home{padding:20px 16px}
+    .section-card{padding:14px;margin-bottom:10px}
+    .game-header{padding:8px 14px 6px}
+    .game-header .timer{font-size:20px}
+    .game-scene{padding:12px 14px}
+    .scenario-context{padding:14px}
+    .choice-card{padding:12px}
+    .game-narration{min-height:40px;padding:6px 14px}
+    .home-brand{margin-bottom:14px}
+    .home-brand .icon-wrap{width:44px;height:44px}
+    .home-brand .icon-wrap .icon{font-size:20px}
+    .streak-wrap{margin-bottom:12px}
+    .streak-ring{width:56px;height:56px}
+    .streak-ring svg{width:56px;height:56px}
+    .streak-ring .ring-center .num{font-size:16px}
+  }
+  @media (max-width:380px){
+    #screen-home{padding:20px 14px}
+    .section-card{padding:12px}
+    .growth-stats{grid-template-columns:1fr 1fr;gap:6px}
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ==================== SCREEN: HOME ==================== -->
+  <div id="screen-home" class="screen active">
+    <div class="home-brand">
+      <div class="icon-wrap"><span class="icon">🔬</span></div>
+      <h1>专注实验室</h1>
+      <div class="brand-divider"></div>
+      <div class="sub">每天 2 分钟，训练你的注意力</div>
+    </div>
+
+    <div class="streak-wrap" id="streakWrap" style="display:none">
+      <div class="streak-ring" id="streakRing">
+        <svg viewBox="0 0 36 36">
+          <circle class="ring-bg" cx="18" cy="18" r="15"/>
+          <circle class="ring-fg" id="ringFg" cx="18" cy="18" r="15"
+            stroke-dasharray="94.2" stroke-dashoffset="94.2"/>
+        </svg>
+        <div class="ring-center">
+          <span class="num" id="ringNum">0</span>
+          <span class="lbl">天</span>
+        </div>
+      </div>
+      <div class="streak-info">
+        <div class="main" id="streakMain">首次使用</div>
+        <div class="sub" id="streakSub">开始你的第一次练习吧</div>
+      </div>
+    </div>
+    <div class="streak-wrap" id="streakEmpty" style="margin-bottom:18px">
+      <div class="streak-info" style="text-align:center;flex:none">
+        <div class="sub" id="streakEmptyText">🌱 首次使用，开始你的第一次练习吧</div>
+      </div>
+    </div>
+
+    <div class="section-card" id="checkinSection">
+      <h3>📊 今日签到</h3>
+      <div style="font-size:12px;color:var(--text-dimmer);margin-bottom:10px">你现在的精力如何？</div>
+      <div class="energy-grid" id="energyGrid">
+        <div class="opt" data-val="high">⚡ 充沛<span class="check">✓</span></div>
+        <div class="opt" data-val="medium">👍 正常<span class="check">✓</span></div>
+        <div class="opt" data-val="low">😴 疲劳<span class="check">✓</span></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-dimmer);margin:12px 0 8px">今天主要想做什么？</div>
+      <div class="type-grid" id="typeGrid">
+        <div class="opt" data-val="study">📚 学习<span class="check">✓</span></div>
+        <div class="opt" data-val="work">💼 工作<span class="check">✓</span></div>
+        <div class="opt" data-val="create">🎨 创作<span class="check">✓</span></div>
+        <div class="opt" data-val="daily">🏠 日常<span class="check">✓</span></div>
+      </div>
+      <div class="practice-recommend" id="practiceRecommend">
+        <div class="rec-title" id="recTitle">推荐练习</div>
+        <div class="rec-desc" id="recDesc"></div>
+        <div class="rec-diff" id="recDiff"></div>
+        <div class="rec-time" id="recTime"></div>
+      </div>
+    </div>
+
+    <div class="home-actions">
+      <button class="btn btn-primary" id="btnStartPractice" disabled onclick="beginPractice()">先完成签到</button>
+    </div>
+
+    <div class="home-divider">— 其他 —</div>
+    <div class="home-secondary">
+      <button class="btn btn-secondary" onclick="startSimulation()">🧭 探索模式</button>
+      <button class="btn btn-secondary" onclick="showStrategyLibrary()">📚 策略库</button>
+    </div>
+
+    <!-- Strategy library section (hidden by default) -->
+    <div class="section-card" id="strategySection" style="display:none"></div>
+  </div>
+
+  <!-- ==================== SCREEN: PRACTICE ==================== -->
+  <div id="screen-practice" class="screen">
+    <div class="practice-back" onclick="backToHome()">← 返回</div>
+    <div id="practiceContent">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+
+  <!-- ==================== SCREEN: GAME (Simulation) ==================== -->
+  <div id="screen-game" class="screen">
+    <div class="game-header">
+      <div class="top">
+        <span class="round-label" id="roundLabel">刚坐下来</span>
+        <span class="round-num" id="roundNum">第 1 关 / 5</span>
+      </div>
+      <div class="timer-row">
+        <div class="timer" id="timerDisplay">0 <span class="unit">分钟经过</span></div>
+        <span class="progress-pct" id="progressPct">观察中</span>
+      </div>
+    </div>
+
+    <div class="game-scene" id="gameScene">
+      <!-- Injected by JS -->
+    </div>
+
+    <div class="game-narration">
+      <div class="label"><span class="dot"></span> 观察者</div>
+      <div class="text" id="narrationText"><span class="cursor"></span></div>
+    </div>
+  </div>
+
+  <!-- ==================== SCREEN: RESULT (Growth / Sim result) ==================== -->
+  <div id="screen-result" class="screen">
+    <div id="resultContent">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// STRATEGIES
+// ============================================================
+const STRATEGIES = [
+  {
+    id: 'stimulus-control', icon: '📵',
+    name: '刺激控制',
+    difficulty: 1,
+    desc: '通过改变环境来减少干扰——这是行为改变最有效的方法之一。',
+    instruction: '观察你当前的环境，找出 3 个可能干扰你的东西（比如手机、打开的社交媒体标签页、电视声音）。\n针对每个干扰源，想一个具体的消除动作。\n例如：手机 → 放到另一个房间',
+    feedback: '环境设计比意志力更可靠。James Clear 说："不要做意志力的战士，做环境的设计师。"'
+  },
+  {
+    id: 'ten-minute', icon: '⏱',
+    name: '10 分钟法则',
+    difficulty: 1,
+    desc: '告诉自己"只做 10 分钟"，降低开始的心理门槛。',
+    instruction: '选一件你一直在拖延的事。\n设一个 10 分钟的计时器。\n对自己说："就做 10 分钟，10 分钟后我可以停下。"\n开始。',
+    feedback: '一旦开始，继续下去比停下更容易。行为科学家发现，开始是唯一真正的难关。'
+  },
+  {
+    id: 'pomodoro', icon: '🍅',
+    name: '番茄工作法',
+    difficulty: 1,
+    desc: '25 分钟专注 + 5 分钟休息，循环训练你的专注力。',
+    instruction: '选一个任务。\n设 25 分钟计时器。\n在这 25 分钟内，完全不切换任务。\n计时器响后，休息 5 分钟（站起来、看窗外、别碰手机）。',
+    feedback: '番茄工作法不是关于耐力，而是关于节奏。节奏感比耐力更容易培养。'
+  },
+  {
+    id: 'environment', icon: '🪴',
+    name: '环境设计',
+    difficulty: 1,
+    desc: '改变物理环境，让好行为更容易、坏行为更难。',
+    instruction: '找出当前环境中一个让你容易分心的东西。\n做一个物理改变：把它移走、关掉、或藏起来。\n再想一个能让好行为更容易的改变。\n立刻执行。',
+    feedback: 'Fogg 的行为模型说：能力 > 动机。让好的选择变得更简单，比激励自己更重要。'
+  },
+  {
+    id: 'temptation-bundling', icon: '🎧',
+    name: '诱惑捆绑',
+    difficulty: 2,
+    desc: '把"应该做的事"和"想做的事"绑在一起。',
+    instruction: '想一件你今天需要做但不太想做的重要任务。\n再想一件你想做的小享受（比如喝咖啡、听一集播客、听喜欢的歌）。\n设定规则：只有先做 25 分钟任务，才能享受 5 分钟。',
+    feedback: 'Katy Milkman 的研究发现，诱惑捆绑可以让执行率提高 30% 以上。关键在于次序。'
+  },
+  {
+    id: 'parking-lot', icon: '📝',
+    name: '待查清单',
+    difficulty: 2,
+    desc: '把临时冒出来的想法写下来，然后继续手头的事。',
+    instruction: '拿出一张纸或打开一个笔记。\n标题写上"待查清单"。\n接下来当你学习/工作时，任何冒出来的杂念都写进去。\n继续做手头的事——承诺之后会处理这些。',
+    feedback: '大脑不喜欢悬而未决的想法。写下来是告诉大脑"我记住了，你可以放心"，从而释放注意力。'
+  },
+  {
+    id: 'implementation-intention', icon: '🎯',
+    name: '执行意图',
+    difficulty: 3,
+    desc: '用"如果 X，那么 Y"的格式制定计划，执行率翻倍。',
+    instruction: '想一个最近让你分心的具体情况。\n用这个格式写一句话：\n"如果 [具体情况] 发生，那么我就 [具体行动]。"\n例如："如果我忍不住想刷手机，那么我就把手机翻面放桌上。"\n念出声，重复一遍。',
+    feedback: 'Gollwitzer 的元分析表明，执行意图可以让目标实现率提高 2-3 倍。关键在于具体到场景和动作。'
+  },
+  {
+    id: 'self-compassion', icon: '💚',
+    name: '自我同情停顿',
+    difficulty: 3,
+    desc: '用自我关怀替代自我批评——这是打破拖延循环的关键。',
+    instruction: '回想一次最近的拖延经历。\n注意你对自己说的话——是否在批评自己？\n试着对自己说三句话：\n1. "这是人之常情"（正常化）\n2. "我知道你不是故意的"（理解）\n3. "我们可以重新开始"（重新承诺）',
+    feedback: 'Kristin Neff 的研究发现：自我批评会导致更多拖延，自我同情反而让人更容易重新开始。'
+  }
+];
+
+// ============================================================
+// SCENARIOS (refactored — neutral exploration)
+// ============================================================
+const SCENARIOS = [
+  {
+    id: 'phone', sceneIcon: '📱',
+    title: '刚坐下来，手机亮了',
+    desc: '你刚翻开书，屏幕亮起——微信弹出一条消息。你知道大概率不是急事，但那个红点让你心痒。',
+    choices: [
+      {
+        id: 'check', label: '看一眼消息',
+        timePassed: 20, isDefault: true,
+        consequence: '你拿起手机回了消息，顺手刷了刷朋友圈和短视频。再放下时，20 分钟过去了。',
+        observation: '我们对小红点的敏感度远高于对待办事项的敏感度。这是大脑的默认模式。'
+      },
+      {
+        id: 'ignore', label: '先放包里',
+        timePassed: 0, isDefault: false,
+        consequence: '你忍住了。心神不宁了 3 分钟，但熬过去后终于进入了状态。',
+        observation: '前额叶皮层战胜了爬行动物脑。每次抵抗都在强化神经通路——就像练肌肉。'
+      }
+    ]
+  },
+  {
+    id: 'bilibili', sceneIcon: '🎬',
+    title: '查资料，打开了视频平台',
+    desc: '你需要查一个教程。你告诉自己"只看这一个"，但首页推荐比教程吸引人多了。',
+    choices: [
+      {
+        id: 'browse', label: '先看看首页推荐',
+        timePassed: 35, isDefault: true,
+        consequence: '算法比你更懂你的注意力。一个接一个，从学习区滑到了生活区。"这是第几个了？"',
+        observation: '推荐系统的设计目标是最大化你的停留时间，而不是你的学习效率。'
+      },
+      {
+        id: 'focus', label: '搜索完立刻退出',
+        timePassed: 0, isDefault: false,
+        consequence: '你只看完需要的部分就关了页面。虽然有点不甘心，但时间保住了。',
+        observation: '设定明确的搜索目标再打开页面——"我只查这个，查完就走"。'
+      }
+    ]
+  },
+  {
+    id: 'search', sceneIcon: '🔍',
+    title: '遇到一个不懂的概念',
+    desc: '学习材料里出现了一个陌生的术语。你决定查一下——然后发现相关链接一个比一个有趣。',
+    choices: [
+      {
+        id: 'dig', label: '顺着链接点下去',
+        timePassed: 45, isDefault: true,
+        consequence: '你开了 8 个标签页。从 A 查到 B，从 B 查到 C……已经忘了最初要查什么了。',
+        observation: '互联网的链接是欲望的链条——每一环都通向一个"你可能想知道"的东西。'
+      },
+      {
+        id: 'note', label: '先记下来，学完再查',
+        timePassed: 0, isDefault: false,
+        consequence: '你把这个词记在了笔记里。忍住没点开，继续看原来的内容。延迟满足是一项超能力。',
+        observation: '把疑问存档而不是立即满足——延迟满足能力比智商更能预测学业成就。'
+      }
+    ]
+  },
+  {
+    id: 'dream', sceneIcon: '☁️',
+    title: '学不进去了……',
+    desc: '盯着书本，但字已经不进脑子了。你开始发呆，然后思绪飘到了别的地方——',
+    choices: [
+      {
+        id: 'drift', label: '放任自己发呆',
+        timePassed: 40, isDefault: true,
+        consequence: '你开始幻想如果当初选了另一条路，现在的人生会是什么样。在白日梦里，你已经成功了。现实中，时间在走。',
+        observation: '幻想是最安全也最昂贵的娱乐——不需要门票，但消耗的是时间。'
+      },
+      {
+        id: 'pomodoro', label: '设个番茄钟再撑一会',
+        timePassed: 0, isDefault: false,
+        consequence: '你对自己说："再学 5 分钟，就 5 分钟。"结果真的进入了状态，不知不觉又学了半小时。',
+        observation: '突破"不想学"的临界点只需要 5 分钟。最难的是决定撑过这 5 分钟的那一刻。'
+      }
+    ]
+  },
+  {
+    id: 'giveup', sceneIcon: '🌅',
+    title: '天快黑了',
+    desc: '窗外天色渐暗。你看了看今天的进度——几乎没有推进。一个声音在脑海里响起："明天再说吧。"',
+    choices: [
+      {
+        id: 'quit', label: '今天先到这里',
+        timePassed: 120, isDefault: true,
+        consequence: '你合上书，感到一阵轻松，随即被愧疚淹没。今天的计划全部作废。"明天一定补回来。"——但明天也会这样想。',
+        observation: '拖延的最后一环不是懒惰，是自我妥协。自我批评只会让这个循环更深。'
+      },
+      {
+        id: 'push', label: '再学 25 分钟再结束',
+        timePassed: 0, isDefault: false,
+        consequence: '你设了一个番茄钟。25 分钟，至少完成一件事再走。一天下来虽然没完成全部，但至少推进了一点点。',
+        observation: '"完成一件事"比"什么都想做但什么都没做"好一万倍。James Clear 说：每天进步 1%，一年后你会进步 37 倍。'
+      }
+    ]
+  }
+];
+
+// ============================================================
+// STATE (persisted to localStorage)
+// ============================================================
+const STORAGE_KEY = 'focusLabData';
+
+function defaultUserData() {
+  return {
+    totalPractices: 0,
+    streak: 0,
+    lastActiveDate: '',
+    practiceLog: [],
+    strategyProgress: {},
+    lastSimChoices: null,
+  };
+}
+
+let userData = null;
+let sessionEnergy = null;
+let sessionType = null;
+let sessionPracticeId = null;
+let simState = null; // { currentRound, totalTime, choiceLog, phase }
+let showingStrategies = false;
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      userData = JSON.parse(raw);
+      return;
+    }
+  } catch(e) {}
+  userData = defaultUserData();
+}
+
+function saveData() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+  } catch(e) {}
+}
+
+// ============================================================
+// DOM REFS
+// ============================================================
+const screenHome = document.getElementById('screen-home');
+const screenPractice = document.getElementById('screen-practice');
+const screenGame = document.getElementById('screen-game');
+const screenResult = document.getElementById('screen-result');
+
+const energyGrid = document.getElementById('energyGrid');
+const typeGrid = document.getElementById('typeGrid');
+const practiceRecommend = document.getElementById('practiceRecommend');
+const recTitle = document.getElementById('recTitle');
+const recDesc = document.getElementById('recDesc');
+const recDiff = document.getElementById('recDiff');
+const recTime = document.getElementById('recTime');
+const btnStartPractice = document.getElementById('btnStartPractice');
+
+const practiceContent = document.getElementById('practiceContent');
+
+const roundLabel = document.getElementById('roundLabel');
+const roundNum = document.getElementById('roundNum');
+const timerDisplay = document.getElementById('timerDisplay');
+const progressPct = document.getElementById('progressPct');
+const gameScene = document.getElementById('gameScene');
+const narrationText = document.getElementById('narrationText');
+
+const resultContent = document.getElementById('resultContent');
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function formatDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getTodayStr() {
+  return formatDate(new Date());
+}
+
+function isToday(str) {
+  return str === getTodayStr();
+}
+
+function showScreen(name) {
+  [screenHome, screenPractice, screenGame, screenResult].forEach(s => s.classList.remove('active'));
+  if (name === 'home') screenHome.classList.add('active');
+  if (name === 'practice') screenPractice.classList.add('active');
+  if (name === 'game') screenGame.classList.add('active');
+  if (name === 'result') screenResult.classList.add('active');
+}
+
+// ============================================================
+// HOME SCREEN
+// ============================================================
+function renderHome() {
+  loadData();
+  showingStrategies = false;
+  renderHomeMain();
+}
+
+function renderHomeMain() {
+  showingStrategies = false;
+  sessionEnergy = null;
+  sessionType = null;
+
+  // Streak ring
+  const streakWrap = document.getElementById('streakWrap');
+  const streakEmpty = document.getElementById('streakEmpty');
+  const ringNum = document.getElementById('ringNum');
+  const ringFg = document.getElementById('ringFg');
+  const streakMain = document.getElementById('streakMain');
+  const streakSub = document.getElementById('streakSub');
+  const streakEmptyText = document.getElementById('streakEmptyText');
+
+  // Check for streak validity first
+  updateStreakOnOpen();
+
+  const s = userData.streak;
+  const total = userData.totalPractices;
+
+  if (total === 0) {
+    streakWrap.style.display = 'none';
+    streakEmpty.style.display = '';
+    streakEmptyText.textContent = '🌱 首次使用，开始你的第一次练习吧';
+  } else {
+    streakWrap.style.display = '';
+    streakEmpty.style.display = 'none';
+
+    // Update ring
+    const pct = Math.min(s / 30, 1); // 30-day max
+    const circumference = 94.2;
+    const offset = circumference - (pct * circumference);
+    ringFg.style.strokeDashoffset = offset;
+
+    // Ring color
+    const numEl = ringNum;
+    if (s <= 3) { ringFg.style.stroke = 'var(--green)'; numEl.className = 'num glow-green'; }
+    else if (s <= 7) { ringFg.style.stroke = 'var(--gold)'; numEl.className = 'num glow-gold'; }
+    else { ringFg.style.stroke = 'var(--purple)'; numEl.className = 'num glow-purple'; }
+
+    ringNum.textContent = s;
+    streakMain.textContent = total >= 10 ? `🔥 累计 ${total} 次练习` : `🔥 坚持了 ${s} 天`;
+    streakSub.textContent = total >= 10
+      ? `已探索 ${Object.keys(userData.strategyProgress).length}/${STRATEGIES.length} 个策略`
+      : '每天 2 分钟，养成新习惯';
+  }
+
+  // Reset check-in
+  document.querySelectorAll('.energy-grid .opt, .type-grid .opt').forEach(el => el.classList.remove('selected'));
+  practiceRecommend.classList.remove('show');
+  btnStartPractice.disabled = true;
+  btnStartPractice.textContent = '先完成签到';
+
+  // Restore brand subtitle
+  document.querySelector('.home-brand .sub').textContent = '每天 2 分钟，训练你的注意力';
+
+  // Show check-in section, hide strategy section
+  document.getElementById('checkinSection').style.display = 'block';
+  document.getElementById('strategySection').style.display = 'none';
+  document.querySelector('.home-actions').style.display = 'block';
+  document.querySelector('.home-divider').style.display = 'block';
+  document.querySelector('.home-secondary').style.display = 'grid';
+
+  showScreen('home');
+  updateStreakOnOpen();
+}
+
+function updateStreakOnOpen() {
+  // Check if streak is still valid
+  if (!userData.lastActiveDate) return;
+  const last = new Date(userData.lastActiveDate + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const diff = Math.floor((today - last) / (1000*60*60*24));
+  if (diff > 1) {
+    // Streak broken
+    userData.streak = 0;
+    saveData();
+  }
+}
+
+// Energy/Type selection
+energyGrid.addEventListener('click', (e) => {
+  const opt = e.target.closest('.opt');
+  if (!opt) return;
+  energyGrid.querySelectorAll('.opt').forEach(el => el.classList.remove('selected'));
+  opt.classList.add('selected');
+  sessionEnergy = opt.dataset.val;
+  updateRecommendation();
+});
+
+typeGrid.addEventListener('click', (e) => {
+  const opt = e.target.closest('.opt');
+  if (!opt) return;
+  typeGrid.querySelectorAll('.opt').forEach(el => el.classList.remove('selected'));
+  opt.classList.add('selected');
+  sessionType = opt.dataset.val;
+  updateRecommendation();
+});
+
+function updateRecommendation() {
+  if (!sessionEnergy || !sessionType) {
+    btnStartPractice.disabled = true;
+    btnStartPractice.textContent = sessionEnergy ? '选择任务类型' : '选择精力水平';
+    practiceRecommend.classList.remove('show');
+    return;
+  }
+
+  const practiceId = pickPractice(sessionEnergy, sessionType);
+  sessionPracticeId = practiceId;
+  const s = STRATEGIES.find(st => st.id === practiceId);
+
+  recTitle.textContent = '🧠 推荐练习：' + s.name;
+  recDesc.textContent = s.desc;
+  recDiff.textContent = '难度：' + '⭐'.repeat(s.difficulty);
+  recTime.textContent = '⏱ 约 2 分钟 · ' + (s.difficulty <= 1 ? '基础' : s.difficulty <= 2 ? '进阶' : '挑战');
+  practiceRecommend.classList.add('show');
+  btnStartPractice.disabled = false;
+  btnStartPractice.textContent = '开始今日练习 →';
+}
+
+function pickPractice(energy, type) {
+  // Pick a strategy that hasn't been done recently or much
+  const recentIds = userData.practiceLog.slice(-3).map(l => l.id);
+  const progress = userData.strategyProgress;
+
+  // Score each strategy: lower = more recommended
+  const scored = STRATEGIES.map(s => {
+    let score = (progress[s.id]?.total || 0) * 10; // prioritize less practiced
+    if (recentIds.includes(s.id)) score += 50; // deprioritize recent
+    if (energy === 'low' && s.difficulty >= 3) score += 30; // too hard for low energy
+    if (energy === 'high' && s.difficulty <= 1) score += 5; // slightly too easy for high energy
+    return { id: s.id, score };
+  });
+
+  scored.sort((a, b) => a.score - b.score);
+  return scored[0].id;
+}
+
+function beginPractice() {
+  if (!sessionPracticeId) return;
+  renderPractice(sessionPracticeId);
+}
+
+function backToHome() {
+  renderHomeMain();
+}
+
+// ============================================================
+// PRACTICE SCREEN
+// ============================================================
+function renderPractice(id) {
+  const s = STRATEGIES.find(st => st.id === id);
+  if (!s) return;
+
+  showScreen('practice');
+  const instructions = s.instruction.split('\n').filter(Boolean);
+  const stepColors = ['s1','s2','s3','s4'];
+  practiceContent.innerHTML = `
+    <div class="practice-card" style="flex:none">
+      <div class="p-header">
+        <span class="p-icon">${s.icon}</span>
+        <span class="p-title">${s.name}</span>
+        <span class="p-diff">${'⭐'.repeat(s.difficulty)}</span>
+      </div>
+      <div class="p-desc">${s.desc}</div>
+      <div class="p-instruction">
+        ${instructions.map((l, i) => `
+          <div class="p-step">
+            <div class="p-step-num ${stepColors[i % stepColors.length]}">${i + 1}</div>
+            <div class="p-step-text">${l}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="practice-actions">
+        <button class="btn btn-green" onclick="completePractice('full')">✅ 完成了</button>
+        <button class="btn btn-secondary" onclick="completePractice('partial')">🔶 做了一半</button>
+        <button class="btn btn-ghost" onclick="completePractice('skip')">⏭ 今天先不了</button>
+      </div>
+    </div>
+  `;
+}
+
+function completePractice(result) {
+  const s = STRATEGIES.find(st => st.id === sessionPracticeId);
+  if (!s) return;
+
+  // Update user data
+  const today = getTodayStr();
+  const lastDate = userData.lastActiveDate;
+
+  // Update streak
+  if (!lastDate || !isToday(lastDate)) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = formatDate(yesterday);
+
+    if (lastDate === yesterdayStr || !lastDate) {
+      userData.streak += 1;
+    } else {
+      userData.streak = 1;
+    }
+  }
+  userData.lastActiveDate = today;
+
+  // Log practice
+  userData.practiceLog.push({
+    id: s.id,
+    date: today,
+    energy: sessionEnergy,
+    type: sessionType,
+    result: result
+  });
+
+  // Update strategy progress
+  if (!userData.strategyProgress[s.id]) {
+    userData.strategyProgress[s.id] = { total: 0, completed: 0 };
+  }
+  userData.strategyProgress[s.id].total += 1;
+  if (result === 'full') userData.strategyProgress[s.id].completed += 1;
+
+  userData.totalPractices += 1;
+  saveData();
+
+  // Show completion
+  showPracticeDone(result, s);
+}
+
+function showPracticeDone(result, s) {
+  const messages = {
+    full: { emoji: '🌱', msg: '练习完成！', sub: '每一次练习都在强化你的注意力肌肉' },
+    partial: { emoji: '🌿', msg: '迈出了第一步', sub: '部分完成也是进步——关键在于持续' },
+    skip: { emoji: '🌱', msg: '没关系，下次再来', sub: '练习的门永远开着' }
+  };
+  const m = messages[result] || messages.skip;
+
+  practiceContent.innerHTML = `
+    <div class="practice-card" style="flex:none">
+      <div class="practice-done">
+        <div class="celebration">${m.emoji}</div>
+        <div class="msg">${m.msg}</div>
+        <div class="sub">${m.sub}</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:16px;padding:8px 0">
+          今日练习：${s.name} · ${result === 'full' ? '✅ 完成' : result === 'partial' ? '🔶 部分' : '⏭ 跳过'}
+        </div>
+        <textarea class="note-input" placeholder="记录一个发现（可选）" id="practiceNote"></textarea>
+        <button class="btn btn-primary" onclick="finishPractice()">查看我的成长 →</button>
+      </div>
+    </div>
+  `;
+}
+
+function finishPractice() {
+  const note = document.getElementById('practiceNote')?.value?.trim() || '';
+  if (note && userData.practiceLog.length > 0) {
+    const last = userData.practiceLog[userData.practiceLog.length - 1];
+    last.note = note;
+    saveData();
+  }
+  showGrowth('practice');
+}
+
+// ============================================================
+// GROWTH VIEW
+// ============================================================
+function showGrowth(from) {
+  showScreen('result');
+
+  const today = getTodayStr();
+  const todayPractices = userData.practiceLog.filter(l => l.date === today);
+  const todayPracticeName = todayPractices.length > 0
+    ? (STRATEGIES.find(s => s.id === todayPractices[0].id)?.name || '未知')
+    : '—';
+  const todayResult = todayPractices.length > 0 ? todayPractices[0].result : null;
+
+  // Calendar: last 7 days
+  const calDays = [];
+  const now = new Date();
+  const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const str = formatDate(d);
+    const hasPractice = userData.practiceLog.some(l => l.date === str);
+    calDays.push({
+      label: dayNames[d.getDay()],
+      dateStr: str,
+      isToday: isToday(str),
+      hasPractice,
+      isFuture: d > now
+    });
+  }
+
+  const totalStrats = STRATEGIES.length;
+  const exploredStrats = Object.keys(userData.strategyProgress).length;
+  const completedStrats = Object.values(userData.strategyProgress).filter(p => p.completed > 0).length;
+
+  // Observation note
+  let insight = '';
+  if (todayResult === 'full') {
+    insight = '今天的练习完成了。注意这个感觉——这就是"做到了"的体验。下次想拖延时，回忆一下这个感觉。';
+  } else if (todayResult === 'partial') {
+    insight = '你迈出了第一步。行为改变的秘诀不是每次都完美，而是"不断地重新开始"。';
+  } else if (todayResult === 'skip') {
+    insight = '跳过也是一种选择——关键是你不必为此愧疚。明天又是新的机会。';
+  } else {
+    insight = '每一段专注的时光都在重塑你的大脑。关键是持续，不是完美。';
+  }
+
+  // For sim result, different content
+  if (from === 'sim') {
+    showSimResult();
+    return;
+  }
+
+  resultContent.innerHTML = `
+    <div class="growth-header">
+      <div class="emoji">${todayResult === 'full' ? '🌱' : todayResult === 'partial' ? '🌿' : '🌱'}</div>
+      <h2>今日记录</h2>
+      <div class="sub">${todayPracticeName !== '—' ? '练习：' + todayPracticeName : '今天还没有练习'}</div>
+    </div>
+
+    <div class="growth-stats">
+      <div class="growth-stat">
+        <span class="stat-icon">📋</span>
+        <div class="num">${userData.totalPractices}</div>
+        <div class="label">累计练习</div>
+      </div>
+      <div class="growth-stat">
+        <span class="stat-icon">🔥</span>
+        <div class="num">${userData.streak}</div>
+        <div class="label">连续天数</div>
+      </div>
+      <div class="growth-stat">
+        <span class="stat-icon">📚</span>
+        <div class="num">${completedStrats}/${totalStrats}</div>
+        <div class="label">策略掌握</div>
+      </div>
+      <div class="growth-stat">
+        <span class="stat-icon">🧠</span>
+        <div class="num${exploredStrats === 0 ? ' muted' : ''}">
+          ${exploredStrats > 0 ? exploredStrats : '—'}
+        </div>
+        <div class="label">已尝试策略</div>
+      </div>
+    </div>
+
+    <div class="growth-calendar">
+      <h3>📅 最近 7 天</h3>
+      <div class="cal-grid">
+        ${dayNames.map(d => `<div class="day-label">${d}</div>`).join('')}
+        ${calDays.map(d => {
+          const dayLogs = d.hasPractice ? userData.practiceLog.filter(l => l.date === d.dateStr) : [];
+          const bestResult = dayLogs.length > 0
+            ? (dayLogs.some(l => l.result === 'full') ? 'full' : dayLogs.some(l => l.result === 'partial') ? 'partial' : 'skip')
+            : null;
+          return `
+            <div class="day${d.isToday ? ' today' : ''}${d.hasPractice ? ' done' : ''}${d.isFuture ? ' future' : ''}">
+              ${new Date(d.dateStr).getDate()}
+              ${bestResult ? `<span class="dot ${bestResult}"></span>` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="growth-tip">
+      💡 <strong>观察笔记</strong><br>${insight}
+    </div>
+
+    <div class="growth-actions">
+      <button class="btn btn-secondary" onclick="startSimulation()">🧭 探索模式</button>
+      <button class="btn btn-ghost" onclick="backToHome()">🏠 返回首页</button>
+      <div class="tip">每天一次微练习，比一次练很久更有效</div>
+    </div>
+  `;
+}
+
+// ============================================================
+// SIMULATION MODE
+// ============================================================
+function startSimulation() {
+  simState = {
+    currentRound: 0,
+    totalTime: 0,
+    choiceLog: [],
+    phase: 'choosing'
+  };
+  showScreen('game');
+  renderSimRound();
+}
+
+function renderSimRound() {
+  const round = simState.currentRound;
+  const scenario = SCENARIOS[round];
+  if (!scenario) { endSimulation(); return; }
+
+  roundLabel.textContent = scenario.title;
+  roundNum.textContent = `第 ${round + 1} 关 / 5`;
+  timerDisplay.innerHTML = `${simState.totalTime} <span class="unit">分钟经过</span>`;
+  progressPct.textContent = simState.choiceLog.length > 0
+    ? `默认反应 ${simState.choiceLog.filter(c => c.isDefault).length} 次`
+    : '观察中';
+
+  setNarration('');
+
+  simState.phase = 'choosing';
+
+  // Update ambient glow for this scenario
+  const glowColors = {
+    phone: 'rgba(249,115,22,0.06)',
+    bilibili: 'rgba(236,72,153,0.06)',
+    search: 'rgba(6,182,212,0.06)',
+    dream: 'rgba(168,85,247,0.06)',
+    giveup: 'rgba(100,116,139,0.05)'
+  };
+  const gameStyle = document.querySelector('#screen-game::before');
+  document.getElementById('screen-game').style.setProperty('--glow-color', glowColors[scenario.id] || 'rgba(6,182,212,0.05)');
+
+  gameScene.innerHTML = `
+    <div class="scenario-context">
+      <div class="scenario-accent ${scenario.id}"></div>
+      <div class="sc-body">
+        <div class="scene-icon">${scenario.sceneIcon}</div>
+        <div class="scene-title">${scenario.title}</div>
+        <div class="scene-desc">${scenario.desc}</div>
+      </div>
+    </div>
+    <div class="choices" id="choicesContainer">
+      ${scenario.choices.map((c, i) => `
+        <button class="choice-card ${c.isDefault ? '' : 'discover'}" data-idx="${i}" onclick="makeSimChoice(${i})">
+          ${c.isDefault
+            ? '<span class="badge natural">默认反应</span>'
+            : '<span class="badge practice">尝试策略</span>'}
+          <div class="choice-label">${c.label}</div>
+          <div class="choice-sub">${c.isDefault ? '看看会发生什么' : '试试不同的做法'}</div>
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function makeSimChoice(idx) {
+  if (simState.phase !== 'choosing') return;
+  simState.phase = 'consequence';
+
+  const round = simState.currentRound;
+  const scenario = SCENARIOS[round];
+  const choice = scenario.choices[idx];
+
+  // Disable buttons
+  document.querySelectorAll('.choice-card').forEach(b => b.disabled = true);
+
+  // Log
+  simState.choiceLog.push({
+    round,
+    title: scenario.title,
+    label: choice.label,
+    isDefault: choice.isDefault,
+    timePassed: choice.timePassed
+  });
+
+  simState.totalTime += choice.timePassed;
+
+  // Render consequence
+  const icon = choice.isDefault ? '👀' : '🧠';
+  const obsLabel = choice.isDefault
+    ? '观察到默认模式：'
+    : '观察到策略尝试：';
+  gameScene.innerHTML = `
+    <div class="consequence-box">
+      <div class="cons-icon">${icon}</div>
+      <div class="cons-text">${choice.consequence}</div>
+      <div class="cons-obs">${obsLabel}${choice.observation}</div>
+    </div>
+    ${round < SCENARIOS.length - 1
+      ? `<button class="btn-continue" onclick="nextSimRound()">继续观察 →</button>`
+      : `<button class="btn-continue" onclick="endSimulation()">查看观察报告 →</button>`}
+  `;
+
+  timerDisplay.innerHTML = `${simState.totalTime} <span class="unit">分钟经过</span>`;
+
+  // Narration
+  typeNarration(choice.observation);
+}
+
+function nextSimRound() {
+  if (simState.currentRound < SCENARIOS.length - 1) {
+    simState.currentRound++;
+    renderSimRound();
+  } else {
+    endSimulation();
+  }
+}
+
+function endSimulation() {
+  userData.lastSimChoices = simState.choiceLog.map(c => ({
+    title: c.title,
+    label: c.label,
+    isDefault: c.isDefault
+  }));
+  saveData();
+  showSimResult();
+}
+
+// ============================================================
+// SIM RESULT
+// ============================================================
+function showSimResult() {
+  showScreen('result');
+
+  const log = simState?.choiceLog || userData.lastSimChoices || [];
+  const defaultCount = log.filter(c => c.isDefault).length;
+  const triedCount = log.filter(c => !c.isDefault).length;
+  const totalTime = simState?.totalTime || 0;
+
+  // Simple pattern analysis
+  let patternType, patternDesc;
+  if (defaultCount === 0) {
+    patternType = '策略偏好型';
+    patternDesc = '你在每个节点都选择了尝试新策略。这意味着你对自身行为有很强的觉察力。';
+  } else if (defaultCount <= 2) {
+    patternType = '混合应对型';
+    patternDesc = '你在大部分情况下能觉察到自己的默认模式，并做出不同选择。偶尔的默认反应是正常现象。';
+  } else if (defaultCount <= 4) {
+    patternType = '默认主导型';
+    patternDesc = '大多数时候你沿用了习惯的反应方式——这是人类大脑的正常运作方式。关键是觉察，而不是评判。';
+  } else {
+    patternType = '习惯惯性型';
+    patternDesc = '在一整天的模拟中你都遵循了默认模式。这不是失败——这是重要的自我认知。觉察是改变的第一步。';
+  }
+
+  // Strategy recommendations based on pattern
+  const recs = [];
+  const recSet = new Set();
+  log.forEach((c, i) => {
+    if (!c.isDefault) {
+      const scenario = SCENARIOS[i];
+      if (scenario) {
+        // Map scenario to strategy
+        const strategyMap = {
+          phone: 'stimulus-control',
+          bilibili: 'temptation-bundling',
+          search: 'parking-lot',
+          dream: 'pomodoro',
+          giveup: 'self-compassion'
+        };
+        const sid = strategyMap[scenario.id];
+        if (sid && !recSet.has(sid)) {
+          recSet.add(sid);
+          const s = STRATEGIES.find(st => st.id === sid);
+          if (s) recs.push(s);
+        }
+      }
+    }
+  });
+
+  const timeH = Math.floor(totalTime / 60);
+  const timeM = totalTime % 60;
+  const timeStr = timeH > 0 ? `${timeH} 小时 ${timeM} 分钟` : `${timeM} 分钟`;
+
+  resultContent.innerHTML = `
+    <div class="growth-header">
+      <div class="emoji">🔍</div>
+      <h2>探索报告</h2>
+      <div class="sub">在 ${timeStr} 的模拟中，你的注意力偏好</div>
+    </div>
+
+    <div class="growth-stats">
+      <div class="growth-stat">
+        <span class="stat-icon">🧪</span>
+        <div class="num">${triedCount}/5</div>
+        <div class="label">策略尝试</div>
+      </div>
+      <div class="growth-stat">
+        <span class="stat-icon">⏱</span>
+        <div class="num">${totalTime}</div>
+        <div class="label">经过分钟</div>
+      </div>
+      <div class="growth-stat">
+        <span class="stat-icon">👀</span>
+        <div class="num" style="color:${defaultCount <= 2 ? 'var(--green)' : 'var(--gold)'}">
+          ${defaultCount}
+        </div>
+        <div class="label">默认反应</div>
+      </div>
+      <div class="growth-stat">
+        <span class="stat-icon">💡</span>
+        <div class="num" style="color:${triedCount >= 3 ? 'var(--green)' : 'var(--text-dim)'}">
+          ${triedCount >= 3 ? '良好' : '···'}
+        </div>
+        <div class="label">觉察力</div>
+      </div>
+    </div>
+
+    <div class="sim-pattern">
+      <h3>🧠 注意力模式：${patternType}</h3>
+      <div class="p-item">${patternDesc}</div>
+    </div>
+
+    <div class="sim-pattern" style="margin-bottom:12px">
+      <h3>⏳ 选择时间线</h3>
+      <div class="sim-timeline">
+        ${log.map((c, i) => `
+          <div class="tl-item" style="animation-delay:${i * 0.08}s">
+            <div class="tl-dot ${c.isDefault ? 'default' : 'tried'}"></div>
+            <div class="tl-text">
+              <div>${c.title}</div>
+              <div class="tl-choice">${c.isDefault ? '👀 ' : '🧠 '}${c.label}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    ${recs.length > 0 ? `
+    <div class="sim-pattern" style="margin-bottom:12px">
+      <h3>📚 基于本次观察的策略推荐</h3>
+      ${recs.map(s => `
+        <div class="p-item" style="padding:6px 0">
+          <span class="tag tried">${s.icon}</span>
+          <strong>${s.name}</strong>
+          <span style="font-size:11px;color:var(--text-dimmer)">${'⭐'.repeat(s.difficulty)}</span>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:2px">${s.desc}</div>
+        </div>
+      `).join('')}
+    </div>
+    ` : `
+    <div class="growth-tip">
+      💡 本次你选择了默认反应——这是重要的自我认知。如果你想练习一些应对策略，可以回到首页试试"每日练习"。
+    </div>
+    `}
+
+    <div class="growth-actions">
+      <button class="btn btn-primary" onclick="startSimulation()">🔄 再探索一次</button>
+      <button class="btn btn-ghost" onclick="backToHome()">🏠 返回首页</button>
+    </div>
+  `;
+}
+
+// ============================================================
+// STRATEGY LIBRARY (in home)
+// ============================================================
+function showStrategyLibrary() {
+  showingStrategies = true;
+  showScreen('home');
+
+  // Hide check-in sections
+  document.getElementById('checkinSection').style.display = 'none';
+  document.querySelector('.home-actions').style.display = 'none';
+  document.querySelector('.home-divider').style.display = 'none';
+  document.querySelector('.home-secondary').style.display = 'none';
+
+  // Update brand subtitle for strategy mode
+  const brandSub = document.querySelector('.home-brand .sub');
+  brandSub.textContent = '📚 ' + Object.keys(userData.strategyProgress).length + '/' + STRATEGIES.length + ' 已探索';
+
+  const section = document.getElementById('strategySection');
+  section.style.display = 'block';
+  section.innerHTML = `
+    <div class="strategy-header">
+      <button class="back-btn" onclick="renderHomeMain()">←</button>
+      <h2>策略工具箱</h2>
+    </div>
+    <div class="strategy-grid">
+      ${STRATEGIES.map(s => {
+        const prog = userData.strategyProgress[s.id];
+        const count = prog?.total || 0;
+        return `
+          <div class="strategy-item">
+            <span class="s-icon">${s.icon}</span>
+            <div class="s-info">
+              <div class="s-name">${s.name}</div>
+              <div class="s-meta">${'⭐'.repeat(s.difficulty)} · ${s.desc}</div>
+            </div>
+            <span class="s-count ${count === 0 ? 'unused' : ''}">${count > 0 ? count + '次' : '未开始'}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ============================================================
+// NARRATION (for simulation)
+// ============================================================
+let narrationTimer = null;
+function typeNarration(text, callback) {
+  if (narrationTimer) clearTimeout(narrationTimer);
+  const el = narrationText;
+  el.innerHTML = '';
+  let i = 0;
+  const speed = 25;
+  function addChar() {
+    if (i < text.length) {
+      el.innerHTML = text.slice(0, i + 1) + '<span class="cursor"></span>';
+      i++;
+      narrationTimer = setTimeout(addChar, speed + Math.random() * 18);
+    } else {
+      el.innerHTML = text + '<span class="cursor"></span>';
+      if (callback) callback();
+    }
+  }
+  addChar();
+}
+
+function setNarration(text) {
+  if (narrationTimer) clearTimeout(narrationTimer);
+  narrationText.innerHTML = (text || '') + '<span class="cursor"></span>';
+}
+
+// ============================================================
+// INIT
+// ============================================================
+renderHome();
+</script>
+</body>
+</html>
